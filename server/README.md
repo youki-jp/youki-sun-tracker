@@ -1,25 +1,18 @@
 🌅 Youki Hono Server — Sunrise/Sunset Backend (Bun + Hono)
 
 A lightweight backend built with Bun and Hono, responsible for:
-
-Fetching sunrise and sunset data from an external API
-
-Validating one-time purchases via RevenueCat (server-to-server)
-
-Acting as a secure Backend-For-Frontend (BFF) for the iOS app
+* Fetching sunrise and sunset data from an external API
+* Validating one-time purchases via RevenueCat (server-to-server)
+* Acting as a secure Backend-For-Frontend (BFF) for the iOS app
 
 This server does not do real-time sun calculations — that heavy computation is done on-device in the iOS app.
 
 🚀 Tech Stack
 
-Runtime: Bun
-
-Server Framework: Hono
-
-Language: TypeScript
-
-Architecture: Backend-for-Frontend (BFF)
-
+Runtime: Bun\
+Server Framework: Hono\
+Language: TypeScript\
+Architecture: Backend-for-Frontend (BFF)\
 Purpose: Secure sunrise/sunset fetching + payment validation
 
 📁 Project Structure
