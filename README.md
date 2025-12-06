@@ -33,9 +33,13 @@ The app fetches sunrise/sunset data from a public API and serves it through a li
 * Displays sunrise/sunset results and additional info like day length.
 
 ### **2. Hono Server**
-
 * Lightweight API layer built in Bun as the runtime, and Hono as the server library. 
+https://hono.dev/
 
 ### **3. Sunrise/Sunset API**
-Shoutout to the maintainer of this api. \
+* Shoutout to the maintainer of this api. \
 [https://sunrisesunset.io/](https://sunrisesunset.io)
+
+### **4. Payment**
+* RevenueCat to handle user's payment info check.\
+https://www.revenuecat.com/docs/
