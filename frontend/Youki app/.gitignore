@@ -1,0 +1,21 @@
+# Xcode
+DerivedData/
+build/
+
+# Xcode user data
+*.xcuserdata
+*.xcodeproj/xcuserdata/
+*.xcworkspace/xcuserdata/
+
+# macOS
+.DS_Store
+
+# Swift Package Manager
+.build/
+Package.resolved
+
+*.p12
+*.cer
+*.mobileprovision
+
+.build/
