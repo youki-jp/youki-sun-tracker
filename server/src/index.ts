@@ -1,5 +1,4 @@
-import { Hono } from 'hono'
-import axios from 'axios'
+import { Hono } from 'hono' import axios from 'axios'
 
 const app = new Hono()
 const sunriseUrl = "https://api.sunrise-sunset.org"
