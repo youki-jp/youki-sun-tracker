@@ -31,3 +31,4 @@ struct SunResults: Decodable {
         case utcOffset = "utc_offset"
     }
 }
+
