@@ -9,6 +9,7 @@
 /* Begin PBXBuildFile section */
 		D4268C7F2F03823F00C29575 /* Youki_appApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = D4268C7E2F03823F00C29575 /* Youki_appApp.swift */; };
 		D4268C832F03824000C29575 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = D4268C822F03824000C29575 /* Assets.xcassets */; };
+		D4FFDE242F7102AB00A555CE /* LocationProvider in Frameworks */ = {isa = PBXBuildFile; productRef = D4FFDE232F7102AB00A555CE /* LocationProvider */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -34,6 +35,7 @@
 		D4268C822F03824000C29575 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		D4268C882F03824000C29575 /* Youki appTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "Youki appTests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
 		D4268C922F03824000C29575 /* Youki appUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "Youki appUITests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
+		D4FFDE252F71077F00A555CE /* Youki-app-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = "Youki-app-Info.plist"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -41,6 +43,9 @@
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				ContentView.swift,
+				Geolocation.swift,
+				GeoLocationViewModel.swift,
+				ServerViewModel.swift,
 			);
 			target = D4268C7A2F03823F00C29575 /* Youki app */;
 		};
@@ -60,11 +65,6 @@
 			path = Models;
 			sourceTree = "<group>";
 		};
-		D4268CAD2F03831F00C29575 /* Services */ = {
-			isa = PBXFileSystemSynchronizedRootGroup;
-			path = Services;
-			sourceTree = "<group>";
-		};
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -72,6 +72,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				D4FFDE242F7102AB00A555CE /* LocationProvider in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -95,11 +96,12 @@
 		D4268C722F03823F00C29575 = {
 			isa = PBXGroup;
 			children = (
-				D4268CAD2F03831F00C29575 /* Services */,
+				D4FFDE252F71077F00A555CE /* Youki-app-Info.plist */,
 				D4268CAC2F03831700C29575 /* Models */,
 				D4268CA92F0382EB00C29575 /* Views */,
 				D4268C822F03824000C29575 /* Assets.xcassets */,
 				D4268C7E2F03823F00C29575 /* Youki_appApp.swift */,
+				D4FFDE222F7102AB00A555CE /* Frameworks */,
 				D4268C7C2F03823F00C29575 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -112,6 +114,13 @@
 				D4268C922F03824000C29575 /* Youki appUITests.xctest */,
 			);
 			name = Products;
+			sourceTree = "<group>";
+		};
+		D4FFDE222F7102AB00A555CE /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			name = Frameworks;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -131,10 +140,10 @@
 			);
 			fileSystemSynchronizedGroups = (
 				D4268CAC2F03831700C29575 /* Models */,
-				D4268CAD2F03831F00C29575 /* Services */,
 			);
 			name = "Youki app";
 			packageProductDependencies = (
+				D4FFDE232F7102AB00A555CE /* LocationProvider */,
 			);
 			productName = "Youki app";
 			productReference = D4268C7B2F03823F00C29575 /* Youki app.app */;
@@ -212,6 +221,9 @@
 			);
 			mainGroup = D4268C722F03823F00C29575;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				D4FFDE212F7101D500A555CE /* XCRemoteSwiftPackageReference "LocationProvider" */,
+			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = D4268C7C2F03823F00C29575 /* Products */;
 			projectDirPath = "";
@@ -417,6 +429,10 @@
 				DEVELOPMENT_TEAM = 3U39S7T8GK;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "Youki-app-Info.plist";
+				INFOPLIST_KEY_LSApplicationCategoryType = "";
+				INFOPLIST_KEY_NSLocationAlwaysAndWhenInUseUsageDescription = "This app uses your location even when running in the background.";
+				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "This app needs your location to display coordinates.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -445,6 +461,10 @@
 				DEVELOPMENT_TEAM = 3U39S7T8GK;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "Youki-app-Info.plist";
+				INFOPLIST_KEY_LSApplicationCategoryType = "";
+				INFOPLIST_KEY_NSLocationAlwaysAndWhenInUseUsageDescription = "This app uses your location even when running in the background.";
+				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "This app needs your location to display coordinates.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -571,6 +591,25 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		D4FFDE212F7101D500A555CE /* XCRemoteSwiftPackageReference "LocationProvider" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/himbeles/LocationProvider.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 1.2.0;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		D4FFDE232F7102AB00A555CE /* LocationProvider */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = D4FFDE212F7101D500A555CE /* XCRemoteSwiftPackageReference "LocationProvider" */;
+			productName = LocationProvider;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = D4268C732F03823F00C29575 /* Project object */;
 }
