@@ -1,13 +1,7 @@
-//
-//  GeoLocationViewModel.swift
-//  Youki app
-//
-//  Created by Kazuki Kagoshima on 2026/04/12.
-//
 
 import Foundation
-import LocationProvider
 import Combine
+import LocationProvider
 
 class GeoLocationViewModel: ObservableObject {
 
