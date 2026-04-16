@@ -1,0 +1,10 @@
+services:
+  youki-server:
+    build:
+      context: ./server
+    container_name: youki-server
+    ports:
+      - "${PORT:-3000}:3000"
+    environment:
+      HOST: "${HOST:-0.0.0.0}"
+      PORT: "${PORT:-3000}"

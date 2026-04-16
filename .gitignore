@@ -1,0 +1,29 @@
+# Local environment files
+.env
+.env.local
+.env.*.local
+!.env.example
+
+# macOS
+.DS_Store
+
+# Logs
+*.log
+
+# Xcode user-specific files
+**/xcuserdata/
+**/*.xcuserstate
+**/*.xcodeproj/project.xcworkspace/
+**/*.xcworkspace/xcuserdata/
+DerivedData/
+build/
+
+# Swift Package Manager
+.build/
+Package.resolved
+
+# Node / Bun
+node_modules/
+
+# Local screenshots and ad hoc debug assets
+frontend/Youki app/Screenshot*

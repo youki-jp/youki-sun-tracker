@@ -4,7 +4,7 @@ import SwiftUI
 struct Youki: App {
     var body: some Scene {
         WindowGroup {
-            GeolocationView()
+            ContentView()
         }
     }
 }

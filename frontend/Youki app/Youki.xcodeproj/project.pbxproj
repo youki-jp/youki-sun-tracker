@@ -30,16 +30,16 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
-		D4268C7B2F03823F00C29575 /* Youki app.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Youki app.app"; sourceTree = BUILT_PRODUCTS_DIR; };
+		D4268C7B2F03823F00C29575 /* Youki.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Youki.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		D4268C7E2F03823F00C29575 /* Youki_appApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Youki_appApp.swift; sourceTree = "<group>"; };
 		D4268C822F03824000C29575 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
-		D4268C882F03824000C29575 /* Youki appTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "Youki appTests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
-		D4268C922F03824000C29575 /* Youki appUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "Youki appUITests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
+		D4268C882F03824000C29575 /* YoukiTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = YoukiTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		D4268C922F03824000C29575 /* YoukiUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = YoukiUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		D4FFDE252F71077F00A555CE /* Youki-app-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = "Youki-app-Info.plist"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
-		D4268CAB2F0382EB00C29575 /* Exceptions for "Views" folder in "Youki app" target */ = {
+		D4268CAB2F0382EB00C29575 /* Exceptions for "Views" folder in "Youki" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				ContentView.swift,
@@ -47,7 +47,7 @@
 				GeoLocationViewModel.swift,
 				ServerViewModel.swift,
 			);
-			target = D4268C7A2F03823F00C29575 /* Youki app */;
+			target = D4268C7A2F03823F00C29575 /* Youki */;
 		};
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
@@ -55,7 +55,7 @@
 		D4268CA92F0382EB00C29575 /* Views */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
-				D4268CAB2F0382EB00C29575 /* Exceptions for "Views" folder in "Youki app" target */,
+				D4268CAB2F0382EB00C29575 /* Exceptions for "Views" folder in "Youki" target */,
 			);
 			path = Views;
 			sourceTree = "<group>";
@@ -109,9 +109,9 @@
 		D4268C7C2F03823F00C29575 /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				D4268C7B2F03823F00C29575 /* Youki app.app */,
-				D4268C882F03824000C29575 /* Youki appTests.xctest */,
-				D4268C922F03824000C29575 /* Youki appUITests.xctest */,
+				D4268C7B2F03823F00C29575 /* Youki.app */,
+				D4268C882F03824000C29575 /* YoukiTests.xctest */,
+				D4268C922F03824000C29575 /* YoukiUITests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -126,9 +126,9 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
-		D4268C7A2F03823F00C29575 /* Youki app */ = {
+		D4268C7A2F03823F00C29575 /* Youki */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = D4268C9C2F03824000C29575 /* Build configuration list for PBXNativeTarget "Youki app" */;
+			buildConfigurationList = D4268C9C2F03824000C29575 /* Build configuration list for PBXNativeTarget "Youki" */;
 			buildPhases = (
 				D4268C772F03823F00C29575 /* Sources */,
 				D4268C782F03823F00C29575 /* Frameworks */,
@@ -141,17 +141,17 @@
 			fileSystemSynchronizedGroups = (
 				D4268CAC2F03831700C29575 /* Models */,
 			);
-			name = "Youki app";
+			name = Youki;
 			packageProductDependencies = (
 				D4FFDE232F7102AB00A555CE /* LocationProvider */,
 			);
 			productName = "Youki app";
-			productReference = D4268C7B2F03823F00C29575 /* Youki app.app */;
+			productReference = D4268C7B2F03823F00C29575 /* Youki.app */;
 			productType = "com.apple.product-type.application";
 		};
-		D4268C872F03824000C29575 /* Youki appTests */ = {
+		D4268C872F03824000C29575 /* YoukiTests */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = D4268C9F2F03824000C29575 /* Build configuration list for PBXNativeTarget "Youki appTests" */;
+			buildConfigurationList = D4268C9F2F03824000C29575 /* Build configuration list for PBXNativeTarget "YoukiTests" */;
 			buildPhases = (
 				D4268C842F03824000C29575 /* Sources */,
 				D4268C852F03824000C29575 /* Frameworks */,
@@ -162,16 +162,16 @@
 			dependencies = (
 				D4268C8A2F03824000C29575 /* PBXTargetDependency */,
 			);
-			name = "Youki appTests";
+			name = YoukiTests;
 			packageProductDependencies = (
 			);
 			productName = "Youki appTests";
-			productReference = D4268C882F03824000C29575 /* Youki appTests.xctest */;
+			productReference = D4268C882F03824000C29575 /* YoukiTests.xctest */;
 			productType = "com.apple.product-type.bundle.unit-test";
 		};
-		D4268C912F03824000C29575 /* Youki appUITests */ = {
+		D4268C912F03824000C29575 /* YoukiUITests */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = D4268CA22F03824000C29575 /* Build configuration list for PBXNativeTarget "Youki appUITests" */;
+			buildConfigurationList = D4268CA22F03824000C29575 /* Build configuration list for PBXNativeTarget "YoukiUITests" */;
 			buildPhases = (
 				D4268C8E2F03824000C29575 /* Sources */,
 				D4268C8F2F03824000C29575 /* Frameworks */,
@@ -182,11 +182,11 @@
 			dependencies = (
 				D4268C942F03824000C29575 /* PBXTargetDependency */,
 			);
-			name = "Youki appUITests";
+			name = YoukiUITests;
 			packageProductDependencies = (
 			);
 			productName = "Youki appUITests";
-			productReference = D4268C922F03824000C29575 /* Youki appUITests.xctest */;
+			productReference = D4268C922F03824000C29575 /* YoukiUITests.xctest */;
 			productType = "com.apple.product-type.bundle.ui-testing";
 		};
 /* End PBXNativeTarget section */
@@ -212,7 +212,7 @@
 					};
 				};
 			};
-			buildConfigurationList = D4268C762F03823F00C29575 /* Build configuration list for PBXProject "Youki app" */;
+			buildConfigurationList = D4268C762F03823F00C29575 /* Build configuration list for PBXProject "Youki" */;
 			developmentRegion = en;
 			hasScannedForEncodings = 0;
 			knownRegions = (
@@ -229,9 +229,9 @@
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
-				D4268C7A2F03823F00C29575 /* Youki app */,
-				D4268C872F03824000C29575 /* Youki appTests */,
-				D4268C912F03824000C29575 /* Youki appUITests */,
+				D4268C7A2F03823F00C29575 /* Youki */,
+				D4268C872F03824000C29575 /* YoukiTests */,
+				D4268C912F03824000C29575 /* YoukiUITests */,
 			);
 		};
 /* End PBXProject section */
@@ -289,12 +289,12 @@
 /* Begin PBXTargetDependency section */
 		D4268C8A2F03824000C29575 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
-			target = D4268C7A2F03823F00C29575 /* Youki app */;
+			target = D4268C7A2F03823F00C29575 /* Youki */;
 			targetProxy = D4268C892F03824000C29575 /* PBXContainerItemProxy */;
 		};
 		D4268C942F03824000C29575 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
-			target = D4268C7A2F03823F00C29575 /* Youki app */;
+			target = D4268C7A2F03823F00C29575 /* Youki */;
 			targetProxy = D4268C932F03824000C29575 /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
@@ -497,7 +497,7 @@
 				SWIFT_EMIT_LOC_STRINGS = NO;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
-				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Youki app.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Youki app";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Youki.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Youki";
 			};
 			name = Debug;
 		};
@@ -515,7 +515,7 @@
 				SWIFT_EMIT_LOC_STRINGS = NO;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
-				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Youki app.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Youki app";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Youki.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Youki";
 			};
 			name = Release;
 		};
@@ -554,7 +554,7 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		D4268C762F03823F00C29575 /* Build configuration list for PBXProject "Youki app" */ = {
+		D4268C762F03823F00C29575 /* Build configuration list for PBXProject "Youki" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				D4268C9A2F03824000C29575 /* Debug */,
@@ -563,7 +563,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		D4268C9C2F03824000C29575 /* Build configuration list for PBXNativeTarget "Youki app" */ = {
+		D4268C9C2F03824000C29575 /* Build configuration list for PBXNativeTarget "Youki" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				D4268C9D2F03824000C29575 /* Debug */,
@@ -572,7 +572,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		D4268C9F2F03824000C29575 /* Build configuration list for PBXNativeTarget "Youki appTests" */ = {
+		D4268C9F2F03824000C29575 /* Build configuration list for PBXNativeTarget "YoukiTests" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				D4268CA02F03824000C29575 /* Debug */,
@@ -581,7 +581,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		D4268CA22F03824000C29575 /* Build configuration list for PBXNativeTarget "Youki appUITests" */ = {
+		D4268CA22F03824000C29575 /* Build configuration list for PBXNativeTarget "YoukiUITests" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				D4268CA32F03824000C29575 /* Debug */,

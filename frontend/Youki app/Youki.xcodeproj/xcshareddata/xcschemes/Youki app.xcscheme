@@ -16,9 +16,9 @@
             <BuildableReference
                BuildableIdentifier = "primary"
                BlueprintIdentifier = "D4268C7A2F03823F00C29575"
-               BuildableName = "Youki app.app"
-               BlueprintName = "Youki app"
-               ReferencedContainer = "container:Youki app.xcodeproj">
+               BuildableName = "Youki.app"
+               BlueprintName = "Youki"
+               ReferencedContainer = "container:Youki.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
       </BuildActionEntries>
@@ -36,9 +36,9 @@
             <BuildableReference
                BuildableIdentifier = "primary"
                BlueprintIdentifier = "D4268C872F03824000C29575"
-               BuildableName = "Youki appTests.xctest"
-               BlueprintName = "Youki appTests"
-               ReferencedContainer = "container:Youki app.xcodeproj">
+               BuildableName = "YoukiTests.xctest"
+               BlueprintName = "YoukiTests"
+               ReferencedContainer = "container:Youki.xcodeproj">
             </BuildableReference>
          </TestableReference>
          <TestableReference
@@ -47,9 +47,9 @@
             <BuildableReference
                BuildableIdentifier = "primary"
                BlueprintIdentifier = "D4268C912F03824000C29575"
-               BuildableName = "Youki appUITests.xctest"
-               BlueprintName = "Youki appUITests"
-               ReferencedContainer = "container:Youki app.xcodeproj">
+               BuildableName = "YoukiUITests.xctest"
+               BlueprintName = "YoukiUITests"
+               ReferencedContainer = "container:Youki.xcodeproj">
             </BuildableReference>
          </TestableReference>
       </Testables>
@@ -69,18 +69,11 @@
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "D4268C7A2F03823F00C29575"
-            BuildableName = "Youki app.app"
-            BlueprintName = "Youki app"
-            ReferencedContainer = "container:Youki app.xcodeproj">
+            BuildableName = "Youki.app"
+            BlueprintName = "Youki"
+            ReferencedContainer = "container:Youki.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
-      <EnvironmentVariables>
-         <EnvironmentVariable
-            key = "BACKEND_URL"
-            value = "http://localhost:3000"
-            isEnabled = "YES">
-         </EnvironmentVariable>
-      </EnvironmentVariables>
    </LaunchAction>
    <ProfileAction
       buildConfiguration = "Release"
@@ -93,9 +86,9 @@
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "D4268C7A2F03823F00C29575"
-            BuildableName = "Youki app.app"
-            BlueprintName = "Youki app"
-            ReferencedContainer = "container:Youki app.xcodeproj">
+            BuildableName = "Youki.app"
+            BlueprintName = "Youki"
+            ReferencedContainer = "container:Youki.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
    </ProfileAction>
