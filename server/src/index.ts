@@ -8,6 +8,7 @@ app.get("/", (c) => {
 });
 
 Bun.serve({
+  hostname: "0.0.0.0",
   port,
   fetch: app.fetch,
 });

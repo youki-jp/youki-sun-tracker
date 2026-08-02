@@ -25,3 +25,14 @@ Hey Youki ☀️
 ## Next step
 
 Once this baseline is in GitHub, we can build the DigitalOcean-ready deployment setup on top of it.
+
+## DigitalOcean App Platform
+
+If you deploy this repo from DigitalOcean App Platform, point the app's source directory to `server/`.
+
+Use these commands:
+
+```text
+Build command: bun run build
+Run command: bun run start
+```
