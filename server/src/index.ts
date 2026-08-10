@@ -1,11 +1,7 @@
-import { Hono } from "hono";
+import { createApp } from "./app";
 
-const app = new Hono();
+const app = createApp();
 const port = Number(process.env.PORT ?? 3000);
-
-app.get("/", (c) => {
-  return c.text("Hey Youki ☀️");
-});
 
 Bun.serve({
   hostname: "0.0.0.0",
