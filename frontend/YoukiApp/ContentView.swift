@@ -36,9 +36,7 @@ struct ContentView: View {
                 VStack(spacing: 0) {
                     skyHero(
                         height: skyHeight(for: proxy),
-                        topInset: topInset,
-                        bottomInset: bottomInset,
-                        availableWidth: proxy.size.width
+                        topInset: topInset
                     )
 
                     if !isSkyExpanded {
@@ -66,9 +64,21 @@ struct ContentView: View {
                         .offset(x: -50)
                     }
                 }
-                .frame(width: proxy.size.width, height: proxy.size.height, alignment: .topLeading)
+                .frame(
+                    width: proxy.size.width,
+                    height: isSkyExpanded ? proxy.size.height + topInset + bottomInset : proxy.size.height,
+                    alignment: .topLeading
+                )
                 .clipShape(RoundedRectangle(cornerRadius: isSkyExpanded ? 0 : 32, style: .continuous))
                 .ignoresSafeArea(edges: isSkyExpanded ? .all : .top)
+
+                if isSkyExpanded {
+                    analysisCard(width: proxy.size.width - 32)
+                        .padding(.bottom, bottomInset + 64)
+                        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
+                        .ignoresSafeArea(edges: .bottom)
+                        .transition(.move(edge: .bottom).combined(with: .opacity))
+                }
 
                 if !isSkyExpanded {
                     bottomBar
@@ -107,7 +117,7 @@ struct ContentView: View {
         isSkyExpanded ? proxy.size.height + proxy.safeAreaInsets.top + proxy.safeAreaInsets.bottom : 266
     }
 
-    private func skyHero(height: CGFloat, topInset: CGFloat, bottomInset: CGFloat, availableWidth: CGFloat) -> some View {
+    private func skyHero(height: CGFloat, topInset: CGFloat) -> some View {
         ZStack(alignment: .top) {
             SkyBackgroundView(mood: selectedDay.mood, isExpanded: isSkyExpanded, accentColor: accentColor)
 
@@ -136,14 +146,8 @@ struct ContentView: View {
 
                 Spacer()
             }
+            .offset(x: isSkyExpanded ? -50 : 0)
 
-            if isSkyExpanded {
-                analysisCard(availableWidth: availableWidth - 32)
-                    .padding(.horizontal, 16)
-                    .padding(.bottom, bottomInset + 10)
-                    .frame(maxHeight: .infinity, alignment: .bottom)
-                    .transition(.move(edge: .bottom).combined(with: .opacity))
-            }
         }
         .frame(maxWidth: .infinity)
         .frame(height: height)
@@ -279,7 +283,7 @@ struct ContentView: View {
         }
     }
 
-    private func analysisCard(availableWidth: CGFloat) -> some View {
+    private func analysisCard(width: CGFloat) -> some View {
         VStack(alignment: .leading, spacing: 0) {
             Capsule()
                 .fill(.white.opacity(0.25))
@@ -326,16 +330,16 @@ struct ContentView: View {
             .foregroundStyle(.white.opacity(0.72))
             .padding(.top, 6)
 
-            analysisMetrics(availableWidth: availableWidth - 48)
-                .padding(.top, 28)
+            analysisMetrics
+                .padding(.top, 16)
                 .overlay(alignment: .top) {
                     Divider()
                         .background(.white.opacity(0.15))
                 }
         }
-        .frame(width: availableWidth - 48, alignment: .leading)
         .padding(.horizontal, 24)
         .padding(.bottom, 18)
+        .frame(width: width, alignment: .leading)
         .background(
             RoundedRectangle(cornerRadius: 26, style: .continuous)
                 .fill(.black.opacity(0.38))
@@ -348,20 +352,11 @@ struct ContentView: View {
         .foregroundStyle(.white)
     }
 
-    @ViewBuilder
-    private func analysisMetrics(availableWidth: CGFloat) -> some View {
-        if availableWidth < 360 {
-            VStack(alignment: .leading, spacing: 12) {
-                analysisMetric(title: "Golden", value: selectedDay.golden)
-                analysisMetric(title: "Cloud", value: selectedDay.cloud)
-                analysisMetric(title: "UV", value: selectedDay.uv)
-            }
-        } else {
-            HStack(spacing: 18) {
-                analysisMetric(title: "Golden", value: selectedDay.golden)
-                analysisMetric(title: "Cloud", value: selectedDay.cloud)
-                analysisMetric(title: "UV", value: selectedDay.uv)
-            }
+    private var analysisMetrics: some View {
+        HStack(spacing: 18) {
+            analysisMetric(title: "Golden", value: selectedDay.golden)
+            analysisMetric(title: "Cloud", value: selectedDay.cloud)
+            analysisMetric(title: "UV", value: selectedDay.uv)
         }
     }
 
