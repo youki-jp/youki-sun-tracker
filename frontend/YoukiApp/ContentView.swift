@@ -146,7 +146,7 @@ struct ContentView: View {
 
                 Spacer()
             }
-            .offset(x: isSkyExpanded ? -50 : 0)
+            .offset(x: -50)
 
         }
         .frame(maxWidth: .infinity)
