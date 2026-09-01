@@ -27,50 +27,52 @@ struct ContentView: View {
         GeometryReader { proxy in
             let topInset = proxy.safeAreaInsets.top
             let bottomInset = proxy.safeAreaInsets.bottom
-            let reportedHorizontalInsets = proxy.safeAreaInsets.leading + proxy.safeAreaInsets.trailing
-            let horizontalInsets = max(reportedHorizontalInsets, 68)
-            let safeWidth = max(proxy.size.width - horizontalInsets, 0)
-            let contentWidth = max(safeWidth - 52, 0)
+            let contentWidth = max(proxy.size.width - 52, 0)
 
             ZStack(alignment: .bottom) {
                 backgroundColor
-                    .ignoresSafeArea()
+                    .ignoresSafeArea(.container, edges: .vertical)
 
                 VStack(spacing: 0) {
                     skyHero(
                         height: skyHeight(for: proxy),
                         topInset: topInset,
                         bottomInset: bottomInset,
-                        availableWidth: safeWidth
+                        availableWidth: proxy.size.width
                     )
 
                     if !isSkyExpanded {
-                        VStack(alignment: .leading, spacing: 0) {
-                            scoreHeader(availableWidth: contentWidth)
-                                .padding(.top, 28)
+                        ZStack(alignment: .topLeading) {
+                            panelColor
 
-                            predictedColorRamp
-                                .frame(width: contentWidth)
-                                .padding(.top, 24)
+                            VStack(alignment: .leading, spacing: 0) {
+                                scoreHeader(availableWidth: contentWidth)
+                                    .padding(.top, 28)
 
-                            eventTimeline
-                                .frame(width: contentWidth)
-                                .padding(.top, 20)
+                                predictedColorRamp
+                                    .frame(width: contentWidth)
+                                    .padding(.top, 24)
+
+                                eventTimeline
+                                    .frame(width: contentWidth)
+                                    .padding(.top, 20)
+                            }
+                            .padding(.bottom, 12)
+                            .frame(width: contentWidth, alignment: .topLeading)
+                            .padding(.leading, 26)
                         }
-                        .padding(.bottom, 12)
-                        .frame(width: contentWidth, alignment: .topLeading)
-                        .frame(maxHeight: .infinity, alignment: .topLeading)
-                        .background(panelColor)
-                        .clipped()
+                        .frame(width: proxy.size.width, alignment: .top)
+                        .frame(maxHeight: .infinity, alignment: .top)
+                        .offset(x: -50)
                     }
                 }
-                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+                .frame(width: proxy.size.width, height: proxy.size.height, alignment: .topLeading)
                 .clipShape(RoundedRectangle(cornerRadius: isSkyExpanded ? 0 : 32, style: .continuous))
                 .ignoresSafeArea(edges: isSkyExpanded ? .all : .top)
 
                 if !isSkyExpanded {
                     bottomBar
-                        .frame(width: safeWidth)
+                        .frame(width: proxy.size.width)
                         .background(barColor)
                         .ignoresSafeArea(edges: .bottom)
                         .transition(.move(edge: .bottom).combined(with: .opacity))
