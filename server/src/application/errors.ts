@@ -14,3 +14,9 @@ export class ValidationError extends AppError {
     super(message, "validation_error", 400);
   }
 }
+
+export class ExternalServiceError extends AppError {
+  constructor(message: string) {
+    super(message, "external_service_error", 502);
+  }
+}

@@ -32,6 +32,8 @@ export interface SkyColorPrediction {
   score: number;
   confidence: number;
   label: SkyColorLabel;
+  estimatedColorName: string;
+  estimatedHex: string;
   dominantColors: string[];
   reasons: string[];
   window: SolarEventWindow;

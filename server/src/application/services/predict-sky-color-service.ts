@@ -11,6 +11,7 @@ import type { SolarProvider } from "../ports/solar-provider";
 import type { TimezoneResolver } from "../ports/timezone-resolver";
 import type { WeatherProvider } from "../ports/weather-provider";
 import { alignSkyColorFeatures } from "./align-sky-color-features";
+import { getCurrentDateInTimezone } from "./local-date-time";
 
 export class PredictSkyColorService {
   constructor(
@@ -27,7 +28,8 @@ export class PredictSkyColorService {
     const timezoneId = await this.timezoneResolver.resolveTimezone(
       request.location,
     );
-    const targetDateIso = request.targetDateIso ?? getCurrentUtcDateIso();
+    const targetDateIso =
+      request.targetDateIso ?? getCurrentDateInTimezone(timezoneId);
     const location = buildResolvedLocation(request.location, timezoneId);
     const contexts = await Promise.all(
       request.requestedEvents.map((kind) =>
@@ -102,8 +104,4 @@ function buildResolvedLocation(
     ...location,
     timezoneId,
   };
-}
-
-function getCurrentUtcDateIso(): string {
-  return new Date().toISOString().slice(0, 10);
 }
