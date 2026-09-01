@@ -589,6 +589,7 @@ struct ContentView: View {
         }
         .padding(.horizontal, 24)
         .padding(.top, 12)
+        .foregroundStyle(inkColor)
         .background(panelColor)
     }
 
