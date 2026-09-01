@@ -93,7 +93,7 @@ struct ContentView: View {
                 switch sheet {
                 case .calendar:
                     calendarSheet
-                        .presentationDetents([.height(480)])
+                        .presentationDetents([.height(520)])
                         .presentationDragIndicator(.visible)
                 case .settings:
                     settingsSheet
@@ -504,7 +504,7 @@ struct ContentView: View {
                 Spacer()
             }
             .padding(.horizontal, 24)
-            .padding(.top, 12)
+            .padding(.top, 36)
             .background(panelColor)
         }
     }
