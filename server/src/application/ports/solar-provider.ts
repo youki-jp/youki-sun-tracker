@@ -2,6 +2,8 @@ import type {
   LocationInput,
   IsoDateString,
   SkyEventKind,
+  SolarDayMilestones,
+  SolarDaySample,
   SolarEventWindow,
   SolarSample,
   TimeRange,
@@ -21,4 +23,17 @@ export interface SolarProvider {
     kind: SkyEventKind;
     range: TimeRange;
   }): Promise<SolarSample[]>;
+
+  getDayMilestones(input: {
+    location: LocationInput;
+    timezoneId: string;
+    targetDateIso: IsoDateString;
+  }): Promise<SolarDayMilestones>;
+
+  listDaySamples(input: {
+    location: LocationInput;
+    timezoneId: string;
+    targetDateIso: IsoDateString;
+    milestones: SolarDayMilestones;
+  }): Promise<SolarDaySample[]>;
 }

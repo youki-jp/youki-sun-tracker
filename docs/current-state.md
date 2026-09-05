@@ -41,6 +41,7 @@ Implemented behavior:
 - Solar elevation and azimuth are computed with the NOAA solar position algorithm, including atmospheric refraction near the horizon. Open-Meteo still supplies the daily sunrise and sunset times that anchor each window.
 - Requests may set `includeFeatures` to receive the per-timestep solar, weather, and air-quality samples alongside each prediction.
 - CORS is enabled on `/api/*` so browser clients on another origin can call the API.
+- `POST /api/v1/sky-day/timeline` returns a whole local day: real solar-elevation milestones, adaptively spaced solar samples, and the hourly weather and air-quality grids. Milestones may be null at polar latitudes where the sun never reaches a given elevation.
 - Health, liveness, and readiness endpoints are available.
 - A Dockerfile exists for a Bun production container.
 

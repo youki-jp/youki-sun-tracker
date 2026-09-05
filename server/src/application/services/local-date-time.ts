@@ -78,6 +78,38 @@ export function localIsoToUtcMillis(
   return wallClockAsUtc - offset;
 }
 
+/** Inverse of localIsoToUtcMillis: a real instant back to wall-clock in a zone. */
+export function utcMillisToLocalIso(
+  utcMillis: number,
+  timezoneId: string,
+): string {
+  const formatter = new Intl.DateTimeFormat("en-CA", {
+    timeZone: timezoneId,
+    hourCycle: "h23",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+  });
+  const parts = formatter.formatToParts(new Date(utcMillis));
+  const read = (type: string): string => {
+    const value = parts.find((part) => part.type === type)?.value;
+
+    if (value === undefined) {
+      throw new ValidationError(`Unable to resolve timezone: ${timezoneId}`);
+    }
+
+    return value;
+  };
+
+  return (
+    `${read("year")}-${read("month")}-${read("day")}` +
+    `T${read("hour")}:${read("minute")}:${read("second")}`
+  );
+}
+
 function getTimezoneOffsetMillis(
   timezoneId: string,
   utcMillis: number,

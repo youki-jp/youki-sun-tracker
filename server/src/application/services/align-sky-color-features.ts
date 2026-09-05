@@ -19,7 +19,7 @@ export function alignSkyColorFeatures(input: {
   }));
 }
 
-function findNearestSample<T extends { timeIso: string }>(
+export function findNearestSample<T extends { timeIso: string }>(
   targetIso: string,
   samples: T[],
 ): T {

@@ -54,6 +54,16 @@ They also accept optional `includeFeatures` (boolean, default `false`). When tru
 
 The response includes a resolved timezone, generation time, score, confidence, label, estimated color, dominant colors, reasons, solar event window, and twilight boundaries.
 
+### Day timeline
+
+`POST /api/v1/sky-day/timeline` returns a whole local day rather than a single event window: every named milestone, solar positions across the day, and the hourly weather and air-quality grids.
+
+Milestones are real solar elevation crossings (astronomical/nautical/civil dawn and dusk, golden hour bounds, sunrise, sunset, solar noon), not fixed minute offsets. Any of them can be `null` inside the polar circles, where the sun never reaches that elevation - callers must handle that rather than assume a time exists.
+
+Solar samples are spaced by how fast the sun is moving, so twilight and golden hour are dense and midday is sparse. Weather and air quality stay on their own hourly grid instead of being copied onto every solar sample; clients join by timestamp and interpolate. A full day is about 22 KB, 3 KB gzipped.
+
+This costs no extra network work: the Open-Meteo providers already fetch seven days of hourly data per request and filter it down, so a whole day was already being downloaded and discarded.
+
 ## Development Commands
 
 Backend:
