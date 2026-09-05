@@ -7,20 +7,17 @@ export function createSkyColorRouter(service: PredictSkyColorService) {
   const router = new Hono();
 
   router.post("/estimate", async (c) => {
-    const payload = await c.req.json().catch(() => {
-      throw new ValidationError("Request body must be valid JSON.");
-    });
-    const request = parseEstimateRequest(payload);
+    const request = parseSkyColorRequest(await readJsonBody(c.req.raw), "flat");
     const response = await service.execute(request);
 
     return c.json(response, 200);
   });
 
   router.post("/predictions", async (c) => {
-    const payload = await c.req.json().catch(() => {
-      throw new ValidationError("Request body must be valid JSON.");
-    });
-    const request = parsePredictionRequest(payload);
+    const request = parseSkyColorRequest(
+      await readJsonBody(c.req.raw),
+      "nested",
+    );
     const response = await service.execute(request);
 
     return c.json(response, 200);
@@ -29,49 +26,45 @@ export function createSkyColorRouter(service: PredictSkyColorService) {
   return router;
 }
 
-function parseEstimateRequest(payload: unknown): SkyColorPredictionRequest {
-  if (!isRecord(payload)) {
-    throw new ValidationError("Request body must be an object.");
-  }
+type RequestShape = "flat" | "nested";
 
-  const latitude = requireNumber(payload.latitude, "latitude");
-  const longitude = requireNumber(payload.longitude, "longitude");
-  const altitudeMeters = optionalNumber(payload.altitudeMeters, "altitudeMeters");
-  const targetDateIso = optionalDateString(payload.targetDateIso, "targetDateIso");
-  const requestedEvents = parseRequestedEvents(payload.requestedEvents);
-
-  return {
-    location: {
-      latitude,
-      longitude,
-      altitudeMeters,
-    },
-    targetDateIso,
-    requestedEvents,
-  };
+async function readJsonBody(request: Request): Promise<unknown> {
+  return request.json().catch(() => {
+    throw new ValidationError("Request body must be valid JSON.");
+  });
 }
 
-function parsePredictionRequest(payload: unknown): SkyColorPredictionRequest {
+function parseSkyColorRequest(
+  payload: unknown,
+  shape: RequestShape,
+): SkyColorPredictionRequest {
   if (!isRecord(payload)) {
     throw new ValidationError("Request body must be an object.");
   }
 
-  const locationPayload = payload.location;
+  const locationPayload = shape === "flat" ? payload : payload.location;
 
   if (!isRecord(locationPayload)) {
     throw new ValidationError("location is required.");
   }
 
-  const latitude = requireNumber(locationPayload.latitude, "location.latitude");
+  const fieldPrefix = shape === "flat" ? "" : "location.";
+  const latitude = requireNumber(
+    locationPayload.latitude,
+    `${fieldPrefix}latitude`,
+  );
   const longitude = requireNumber(
     locationPayload.longitude,
-    "location.longitude",
+    `${fieldPrefix}longitude`,
   );
   const altitudeMeters = optionalNumber(
     locationPayload.altitudeMeters,
-    "location.altitudeMeters",
+    `${fieldPrefix}altitudeMeters`,
   );
-  const targetDateIso = optionalDateString(payload.targetDateIso, "targetDateIso");
+  const targetDateIso = optionalDateString(
+    payload.targetDateIso,
+    "targetDateIso",
+  );
   const requestedEvents = parseRequestedEvents(payload.requestedEvents);
 
   return {
@@ -96,24 +89,18 @@ function parseRequestedEvents(value: unknown): SkyEventKind[] {
     );
   }
 
-  const allowedValues = new Set<SkyEventKind>(["sunrise", "sunset"]);
-  const events = value.map((item) => {
+  const events = new Set<SkyEventKind>();
+  value.forEach((item) => {
     if (item !== "sunrise" && item !== "sunset") {
       throw new ValidationError(
         "requestedEvents may only contain 'sunrise' and 'sunset'.",
       );
     }
 
-    return item;
+    events.add(item);
   });
 
-  return events.filter((event, index) => {
-    if (!allowedValues.has(event)) {
-      return false;
-    }
-
-    return events.indexOf(event) === index;
-  });
+  return [...events];
 }
 
 function requireNumber(value: unknown, fieldName: string): number {

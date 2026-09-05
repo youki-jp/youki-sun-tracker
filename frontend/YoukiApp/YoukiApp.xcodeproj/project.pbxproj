@@ -11,6 +11,11 @@
 		A10000000000000000000002 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000002 /* ContentView.swift */; };
 		A10000000000000000000003 /* ServerViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000003 /* ServerViewModel.swift */; };
 		A10000000000000000000004 /* AppConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000004 /* AppConfig.swift */; };
+		A10000000000000000000007 /* ForecastComponents.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000007 /* ForecastComponents.swift */; };
+		A10000000000000000000008 /* ForecastSheets.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000008 /* ForecastSheets.swift */; };
+		A10000000000000000000009 /* PrototypeModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000009 /* PrototypeModels.swift */; };
+		A1000000000000000000000A /* SkyBackgroundView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1000000000000000000000A /* SkyBackgroundView.swift */; };
+		A1000000000000000000000B /* Color+Hex.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1000000000000000000000B /* Color+Hex.swift */; };
 		A10000000000000000000005 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000005 /* Assets.xcassets */; };
 /* End PBXBuildFile section */
 
@@ -22,6 +27,11 @@
 		B10000000000000000000004 /* AppConfig.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppConfig.swift; sourceTree = "<group>"; };
 		B10000000000000000000005 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		B10000000000000000000006 /* YoukiApp-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "YoukiApp-Info.plist"; sourceTree = "<group>"; };
+		B10000000000000000000007 /* ForecastComponents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ForecastComponents.swift; sourceTree = "<group>"; };
+		B10000000000000000000008 /* ForecastSheets.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ForecastSheets.swift; sourceTree = "<group>"; };
+		B10000000000000000000009 /* PrototypeModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PrototypeModels.swift; sourceTree = "<group>"; };
+		B1000000000000000000000A /* SkyBackgroundView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SkyBackgroundView.swift; sourceTree = "<group>"; };
+		B1000000000000000000000B /* Color+Hex.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Color+Hex.swift"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -51,6 +61,11 @@
 				B10000000000000000000003 /* ServerViewModel.swift */,
 				B10000000000000000000002 /* ContentView.swift */,
 				B10000000000000000000001 /* YoukiApp.swift */,
+				B10000000000000000000007 /* ForecastComponents.swift */,
+				B10000000000000000000008 /* ForecastSheets.swift */,
+				B10000000000000000000009 /* PrototypeModels.swift */,
+				B1000000000000000000000A /* SkyBackgroundView.swift */,
+				B1000000000000000000000B /* Color+Hex.swift */,
 				B10000000000000000000005 /* Assets.xcassets */,
 			);
 			sourceTree = "<group>";
@@ -137,6 +152,11 @@
 				A10000000000000000000002 /* ContentView.swift in Sources */,
 				A10000000000000000000003 /* ServerViewModel.swift in Sources */,
 				A10000000000000000000001 /* YoukiApp.swift in Sources */,
+				A10000000000000000000007 /* ForecastComponents.swift in Sources */,
+				A10000000000000000000008 /* ForecastSheets.swift in Sources */,
+				A10000000000000000000009 /* PrototypeModels.swift in Sources */,
+				A1000000000000000000000A /* SkyBackgroundView.swift in Sources */,
+				A1000000000000000000000B /* Color+Hex.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

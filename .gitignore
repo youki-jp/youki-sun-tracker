@@ -1,0 +1,11 @@
+# macOS metadata
+.DS_Store
+
+# Xcode user and local state
+xcuserdata/
+*.xcuserstate
+
+# Local dependencies and build output
+server/node_modules/
+DerivedData/
+build/

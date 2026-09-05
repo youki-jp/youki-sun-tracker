@@ -1,17 +1,23 @@
-# iOS app
+# Youki iOS app
 
-This directory contains a minimal SwiftUI client for the Youki server.
+This directory contains the SwiftUI prototype for Youki's sunrise and sunset color forecast experience.
 
-## Server URL configuration
+## Run in Xcode
 
-The app reads `BACKEND_URL` from the Xcode scheme environment.
+Open `YoukiApp/YoukiApp.xcodeproj`, select the `YoukiApp` scheme, choose an iOS Simulator or connected iPhone, and run. The project currently targets iOS 17 and newer.
 
-- Default: `http://localhost:3000`
-- Fallback in code: `http://localhost:3000`
+## Prototype behavior
 
-To point the app at DigitalOcean later, edit the `BACKEND_URL` environment variable in the shared `YoukiApp` scheme.
+The current screen uses local sample data for Tokyo so the visual experience can be developed independently of the backend. It includes:
 
-## What it does
+- Sunrise and sunset forecast presentation
+- Expandable sky color analysis
+- Forecast calendar with locked premium days
+- Locations and subscription preview sheets
+- Light and dark theme previews
 
-The app makes a `GET /` request to the configured server and renders the plain-text response on screen.
+The temporary sample data can be replaced when the API client is connected to the backend. `AppConfig.swift` and `ServerViewModel.swift` retain the initial backend connection seam and read `BACKEND_URL` from the Xcode scheme environment.
 
+## Backend URL
+
+The default backend URL is `http://localhost:3000`. To override it for future API wiring, add `BACKEND_URL` to the Xcode scheme environment.
