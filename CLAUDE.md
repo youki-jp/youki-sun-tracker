@@ -13,6 +13,8 @@ The UI prototype and backend are intentionally at different integration stages. 
 
 For a fuller snapshot, read [`docs/current-state.md`](docs/current-state.md). For agent-specific rules, read [`AGENTS.md`](AGENTS.md) and the files in [`.codex/`](.codex/).
 
+The live sky gradient is specified in [`docs/sky-gradient-implementation.md`](docs/sky-gradient-implementation.md): the backend side is done, the SwiftUI side is not started.
+
 ## Source Map
 
 ### Backend
