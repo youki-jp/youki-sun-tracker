@@ -7,6 +7,8 @@ Youki is a sunrise and sunset color forecast prototype. The repository contains 
 - `server/` contains the HTTP API, application services, domain models, and Open-Meteo adapters.
 - `frontend/` contains the SwiftUI prototype and its Xcode project.
 - `docs/sky-color-prediction.md` describes the forecast architecture and data requirements.
+- `docs/current-state.md` records what is implemented, mocked, and planned.
+- `CLAUDE.md`, `AGENTS.md`, and `.codex/` contain project guidance for coding agents.
 
 ## Backend
 
