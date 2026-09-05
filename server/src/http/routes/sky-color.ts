@@ -66,6 +66,10 @@ function parseSkyColorRequest(
     "targetDateIso",
   );
   const requestedEvents = parseRequestedEvents(payload.requestedEvents);
+  const includeFeatures = optionalBoolean(
+    payload.includeFeatures,
+    "includeFeatures",
+  );
 
   return {
     location: {
@@ -75,6 +79,7 @@ function parseSkyColorRequest(
     },
     targetDateIso,
     requestedEvents,
+    includeFeatures,
   };
 }
 
@@ -117,6 +122,18 @@ function optionalNumber(value: unknown, fieldName: string): number | null {
   }
 
   return requireNumber(value, fieldName);
+}
+
+function optionalBoolean(value: unknown, fieldName: string): boolean {
+  if (value === undefined || value === null) {
+    return false;
+  }
+
+  if (typeof value !== "boolean") {
+    throw new ValidationError(`${fieldName} must be a boolean.`);
+  }
+
+  return value;
 }
 
 function optionalDateString(

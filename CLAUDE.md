@@ -50,6 +50,8 @@ Prediction endpoints:
 
 Both endpoints also accept optional `targetDateIso` (`YYYY-MM-DD`) and `requestedEvents` (`sunrise`, `sunset`). If events are omitted, both are requested.
 
+They also accept optional `includeFeatures` (boolean, default `false`). When true, each prediction carries a `features` array holding the aligned solar, weather, and air-quality sample for every 15-minute step in the scoring window. This exists for clients that synthesise their own sky colour rather than using `estimatedHex`. The key is absent unless requested, so the default response shape is unchanged.
+
 The response includes a resolved timezone, generation time, score, confidence, label, estimated color, dominant colors, reasons, solar event window, and twilight boundaries.
 
 ## Development Commands
@@ -89,7 +91,8 @@ DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer xcodebuild \
 ## Important Limitations
 
 - The iOS app displays curated sample data; no Swift API client maps backend predictions into the UI yet.
-- Solar event times come from Open-Meteo daily sunrise and sunset values. The current solar samples use a simplified linear elevation model and fixed sunrise/sunset azimuths, not a complete astronomical calculation.
+- Solar event times come from Open-Meteo daily sunrise and sunset values. Elevation and azimuth within the window are computed locally with the NOAA solar position algorithm in `server/src/infrastructure/solar/solar-position.ts`.
+- Weather and air quality are hourly and aligned by nearest sample, so atmospheric values are effectively constant across the 15-minute solar timesteps. Clients that need smooth variation must interpolate.
 - The backend captures all requested weather and air-quality fields, but the current heuristic uses only a subset directly. Mid-level cloud, dew point, PM10, and ozone are available for future refinement.
 - Open-Meteo calls require network access. There is no local fixture or mock provider in the current implementation.
 - The `server` package `build` script is still a placeholder. `bun build` is the practical bundling check until a formal build pipeline is introduced.

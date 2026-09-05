@@ -46,7 +46,85 @@ export function parseLocalIsoToMillis(value: string): number {
   return parseLocalDateTime(value).getTime();
 }
 
-function parseLocalDateTime(value: string): Date {
+/**
+ * Resolve a wall-clock time in a named zone to a real UTC instant.
+ *
+ * Every timeIso in this service is a naive local string with no offset, which
+ * is fine for ordering and comparison but useless for astronomy. Anything that
+ * needs a true instant must go through here.
+ */
+export function localIsoToUtcMillis(
+  value: string,
+  timezoneId: string,
+): number {
+  const parts = parseLocalDateTimeParts(value);
+  const wallClockAsUtc = Date.UTC(
+    parts.year,
+    parts.month - 1,
+    parts.day,
+    parts.hour,
+    parts.minute,
+    parts.second,
+  );
+
+  // The offset depends on the instant we are trying to find, so guess with the
+  // wall-clock reading, then refine once. Two passes settle DST transitions.
+  const firstGuess = getTimezoneOffsetMillis(timezoneId, wallClockAsUtc);
+  const offset = getTimezoneOffsetMillis(
+    timezoneId,
+    wallClockAsUtc - firstGuess,
+  );
+
+  return wallClockAsUtc - offset;
+}
+
+function getTimezoneOffsetMillis(
+  timezoneId: string,
+  utcMillis: number,
+): number {
+  const formatter = new Intl.DateTimeFormat("en-CA", {
+    timeZone: timezoneId,
+    hourCycle: "h23",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+  });
+  const parts = formatter.formatToParts(new Date(utcMillis));
+  const read = (type: string): number => {
+    const value = parts.find((part) => part.type === type)?.value;
+
+    if (value === undefined) {
+      throw new ValidationError(`Unable to resolve timezone: ${timezoneId}`);
+    }
+
+    return Number(value);
+  };
+
+  const asUtc = Date.UTC(
+    read("year"),
+    read("month") - 1,
+    read("day"),
+    read("hour"),
+    read("minute"),
+    read("second"),
+  );
+
+  return asUtc - utcMillis;
+}
+
+interface LocalDateTimeParts {
+  year: number;
+  month: number;
+  day: number;
+  hour: number;
+  minute: number;
+  second: number;
+}
+
+function parseLocalDateTimeParts(value: string): LocalDateTimeParts {
   const normalized = value.trim().replace("Z", "");
   const match = normalized.match(
     /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})(?::(\d{2}))?$/,
@@ -58,13 +136,26 @@ function parseLocalDateTime(value: string): Date {
 
   const [, year, month, day, hour, minute, second = "00"] = match;
 
+  return {
+    year: Number(year),
+    month: Number(month),
+    day: Number(day),
+    hour: Number(hour),
+    minute: Number(minute),
+    second: Number(second),
+  };
+}
+
+function parseLocalDateTime(value: string): Date {
+  const parts = parseLocalDateTimeParts(value);
+
   return new Date(
-    Number(year),
-    Number(month) - 1,
-    Number(day),
-    Number(hour),
-    Number(minute),
-    Number(second),
+    parts.year,
+    parts.month - 1,
+    parts.day,
+    parts.hour,
+    parts.minute,
+    parts.second,
     0,
   );
 }

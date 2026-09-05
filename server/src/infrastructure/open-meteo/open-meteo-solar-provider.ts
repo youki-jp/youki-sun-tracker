@@ -1,14 +1,21 @@
 import { ValidationError } from "../../application/errors";
 import type { SolarProvider } from "../../application/ports/solar-provider";
-import { addMinutesToLocalIso } from "../../application/services/local-date-time";
+import {
+  addMinutesToLocalIso,
+  localIsoToUtcMillis,
+  parseLocalIsoToMillis,
+} from "../../application/services/local-date-time";
 import type {
   SkyEventKind,
   SolarEventWindow,
   SolarSample,
   TwilightPhase,
 } from "../../domain";
+import { calculateSolarPosition } from "../solar/solar-position";
 import type { OpenMeteoDailyForecastResponse } from "./open-meteo-types";
 import { OpenMeteoClient } from "./open-meteo-client";
+
+const SAMPLE_INTERVAL_MINUTES = 15;
 
 export class OpenMeteoSolarProvider implements SolarProvider {
   constructor(private readonly client: OpenMeteoClient) {}
@@ -69,30 +76,32 @@ export class OpenMeteoSolarProvider implements SolarProvider {
   }
 
   async listSolarSamples(input: {
+    location: { latitude: number; longitude: number };
+    timezoneId: string;
     kind: SkyEventKind;
     range: { startsAtIso: string; endsAtIso: string };
   }): Promise<SolarSample[]> {
     const samples: SolarSample[] = [];
-    const startMs = Date.parse(input.range.startsAtIso);
-    const endMs = Date.parse(input.range.endsAtIso);
+    const startMs = parseLocalIsoToMillis(input.range.startsAtIso);
+    const endMs = parseLocalIsoToMillis(input.range.endsAtIso);
     const cursor = new Date(startMs);
 
     while (cursor.getTime() <= endMs) {
-      const elapsedRatio =
-        endMs === startMs ? 0 : (cursor.getTime() - startMs) / (endMs - startMs);
-      const elevationDegrees =
-        input.kind === "sunrise"
-          ? -12 + elapsedRatio * 18
-          : 6 - elapsedRatio * 18;
-
-      samples.push({
-        timeIso: formatLocalSampleTime(cursor),
-        elevationDegrees,
-        azimuthDegrees: input.kind === "sunrise" ? 90 : 270,
-        twilightPhase: mapElevationToTwilightPhase(elevationDegrees),
+      const timeIso = formatLocalSampleTime(cursor);
+      const position = calculateSolarPosition({
+        utcMillis: localIsoToUtcMillis(timeIso, input.timezoneId),
+        latitude: input.location.latitude,
+        longitude: input.location.longitude,
       });
 
-      cursor.setMinutes(cursor.getMinutes() + 15);
+      samples.push({
+        timeIso,
+        elevationDegrees: position.elevationDegrees,
+        azimuthDegrees: position.azimuthDegrees,
+        twilightPhase: mapElevationToTwilightPhase(position.elevationDegrees),
+      });
+
+      cursor.setMinutes(cursor.getMinutes() + SAMPLE_INTERVAL_MINUTES);
     }
 
     return samples;

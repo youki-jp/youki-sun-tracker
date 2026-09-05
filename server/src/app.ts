@@ -1,4 +1,5 @@
 import { Hono } from "hono";
+import { cors } from "hono/cors";
 import { AppError } from "./application/errors";
 import { createPredictSkyColorService } from "./infrastructure/factories/create-predict-sky-color-service";
 import { createHealthRouter } from "./http/routes/health";
@@ -8,6 +9,9 @@ export function createApp() {
   const app = new Hono();
   const predictSkyColorService = createPredictSkyColorService();
   const startedAtIso = new Date().toISOString();
+
+  // Browser-based prototypes call these endpoints directly from another origin.
+  app.use("/api/*", cors());
 
   app.get("/", (c) => c.text("Hey Youki ☀️"));
   app.route(
