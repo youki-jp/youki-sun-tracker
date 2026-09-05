@@ -6,6 +6,16 @@ import type { PredictSkyColorService } from "../../application/services/predict-
 export function createSkyColorRouter(service: PredictSkyColorService) {
   const router = new Hono();
 
+  router.post("/estimate", async (c) => {
+    const payload = await c.req.json().catch(() => {
+      throw new ValidationError("Request body must be valid JSON.");
+    });
+    const request = parseEstimateRequest(payload);
+    const response = await service.execute(request);
+
+    return c.json(response, 200);
+  });
+
   router.post("/predictions", async (c) => {
     const payload = await c.req.json().catch(() => {
       throw new ValidationError("Request body must be valid JSON.");
@@ -17,6 +27,28 @@ export function createSkyColorRouter(service: PredictSkyColorService) {
   });
 
   return router;
+}
+
+function parseEstimateRequest(payload: unknown): SkyColorPredictionRequest {
+  if (!isRecord(payload)) {
+    throw new ValidationError("Request body must be an object.");
+  }
+
+  const latitude = requireNumber(payload.latitude, "latitude");
+  const longitude = requireNumber(payload.longitude, "longitude");
+  const altitudeMeters = optionalNumber(payload.altitudeMeters, "altitudeMeters");
+  const targetDateIso = optionalDateString(payload.targetDateIso, "targetDateIso");
+  const requestedEvents = parseRequestedEvents(payload.requestedEvents);
+
+  return {
+    location: {
+      latitude,
+      longitude,
+      altitudeMeters,
+    },
+    targetDateIso,
+    requestedEvents,
+  };
 }
 
 function parsePredictionRequest(payload: unknown): SkyColorPredictionRequest {
