@@ -21,6 +21,16 @@ export interface SkyColorEventContext {
   features: SkyColorFeatures[];
 }
 
+export interface SkyColorConditions {
+  cloudCoverPct: number | null;
+  highCloudPct: number | null;
+  lowCloudPct: number | null;
+  relativeHumidityPct: number | null;
+  visibilityMeters: number | null;
+  precipitationMillimeters: number | null;
+  uvIndex: number | null;
+}
+
 export interface SkyColorPredictionRequest {
   location: LocationInput;
   targetDateIso: IsoDateString | null;
@@ -36,6 +46,7 @@ export interface SkyColorPrediction {
   estimatedHex: string;
   dominantColors: string[];
   reasons: string[];
+  conditions: SkyColorConditions;
   window: SolarEventWindow;
 }
 

@@ -1,7 +1,8 @@
 import SwiftUI
 
 struct ContentView: View {
-    @State var selectedDayID = PrototypeDay.sampleDays[0].id
+    @StateObject var serverViewModel = ServerViewModel()
+    @State var selectedDayID = "today"
     @State var isSkyExpanded = false
     @State var activeSheet: ActiveSheet?
     @State var wakeEnabled = true
@@ -20,7 +21,9 @@ struct ContentView: View {
     var cardColor: Color { appTheme.cardColor }
 
     var selectedDay: PrototypeDay {
-        PrototypeDay.sampleDays.first(where: { $0.id == selectedDayID }) ?? PrototypeDay.sampleDays[0]
+        serverViewModel.forecastDays.first(where: { $0.id == selectedDayID })
+            ?? serverViewModel.forecastDays.first
+            ?? PrototypeDay.sampleDays[0]
     }
 
     var body: some View {
@@ -40,35 +43,33 @@ struct ContentView: View {
                     )
 
                     if !isSkyExpanded {
-                        ZStack(alignment: .topLeading) {
-                            panelColor
+                        VStack(alignment: .leading, spacing: 0) {
+                            scoreHeader(availableWidth: contentWidth)
+                                .padding(.top, 28)
 
-                            VStack(alignment: .leading, spacing: 0) {
-                                scoreHeader(availableWidth: contentWidth)
-                                    .padding(.top, 28)
+                            predictedColorRamp
+                                .frame(width: contentWidth)
+                                .padding(.top, 24)
 
-                                predictedColorRamp
-                                    .frame(width: contentWidth)
-                                    .padding(.top, 24)
-
-                                eventTimeline
-                                    .frame(width: contentWidth)
-                                    .padding(.top, 20)
-                            }
-                            .padding(.bottom, 12)
-                            .frame(width: contentWidth, alignment: .topLeading)
-                            .padding(.leading, 26)
+                            eventTimeline
+                                .frame(width: contentWidth)
+                                .padding(.top, 20)
                         }
-                        .frame(width: proxy.size.width, alignment: .top)
+                        .padding(.horizontal, 26)
+                        .padding(.bottom, 12)
+                        .frame(maxWidth: .infinity, alignment: .topLeading)
                         .frame(maxHeight: .infinity, alignment: .top)
-                        .offset(x: -50)
+                        .background(
+                            panelColor
+                                .ignoresSafeArea(.container, edges: .horizontal)
+                        )
                     }
                 }
                 .frame(
-                    width: proxy.size.width,
                     height: isSkyExpanded ? proxy.size.height + topInset + bottomInset : proxy.size.height,
                     alignment: .topLeading
                 )
+                .frame(maxWidth: .infinity, alignment: .topLeading)
                 .clipShape(RoundedRectangle(cornerRadius: isSkyExpanded ? 0 : 32, style: .continuous))
                 .ignoresSafeArea(edges: isSkyExpanded ? .all : .top)
 
@@ -111,6 +112,26 @@ struct ContentView: View {
             }
         }
         .preferredColorScheme(appTheme.colorScheme)
+        .task {
+            await serverViewModel.loadForecast()
+        }
+        .alert(
+            "Live forecast unavailable",
+            isPresented: Binding(
+                get: { serverViewModel.errorMessage != nil },
+                set: { isPresented in
+                    if !isPresented {
+                        serverViewModel.clearError()
+                    }
+                }
+            )
+        ) {
+            Button("OK", role: .cancel) {
+                serverViewModel.clearError()
+            }
+        } message: {
+            Text(serverViewModel.errorMessage ?? "Please try again later.")
+        }
     }
 
     func skyHeight(for proxy: GeometryProxy) -> CGFloat {
@@ -142,11 +163,26 @@ struct ContentView: View {
                     .background(.white.opacity(0.08), in: Capsule())
                 }
                 .buttonStyle(.plain)
+                .accessibilityIdentifier("locationButton")
                 .padding(.top, topInset + 10)
+
+                if serverViewModel.isLoading {
+                    HStack(spacing: 7) {
+                        ProgressView()
+                            .tint(.white)
+                            .scaleEffect(0.7)
+                        Text(serverViewModel.statusText)
+                            .font(.system(size: 10, weight: .semibold, design: .rounded))
+                    }
+                    .foregroundStyle(.white.opacity(0.86))
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 8)
+                    .background(.black.opacity(0.18), in: Capsule())
+                    .padding(.top, 8)
+                }
 
                 Spacer()
             }
-            .offset(x: -50)
         }
         .frame(maxWidth: .infinity)
         .frame(height: height)

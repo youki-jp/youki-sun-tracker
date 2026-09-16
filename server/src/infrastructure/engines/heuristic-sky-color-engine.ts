@@ -57,6 +57,7 @@ export class HeuristicSkyColorEngine implements SkyColorEngine {
         estimatedHex: palette.primary.hex,
         dominantColors: palette.secondary,
         reasons: buildReasons(metrics),
+        conditions: buildConditions(context),
         window: context.window,
       };
     });
@@ -230,7 +231,7 @@ function mapScoreToLabel(score: number): SkyColorLabel {
 }
 
 function calculateDataCoverage(context: SkyColorEventContext): number {
-  const totalValues = context.features.length * 12;
+  const totalValues = context.features.length * 13;
   const presentValues = context.features.reduce((sum, feature) => {
     const values = [
       feature.weather.cloudCover.totalPct,
@@ -241,6 +242,7 @@ function calculateDataCoverage(context: SkyColorEventContext): number {
       feature.weather.relativeHumidityPct,
       feature.weather.dewPointCelsius,
       feature.weather.precipitationMillimeters,
+      feature.weather.uvIndex,
       feature.airQuality.aerosolOpticalDepth,
       feature.airQuality.ozoneUgM3,
       feature.airQuality.dustUgM3,
@@ -253,11 +255,51 @@ function calculateDataCoverage(context: SkyColorEventContext): number {
   return totalValues === 0 ? 0 : presentValues / totalValues;
 }
 
+function buildConditions(
+  context: SkyColorEventContext,
+): SkyColorPrediction["conditions"] {
+  return {
+    cloudCoverPct: averageNullableOrNull(
+      context.features.map((feature) => feature.weather.cloudCover.totalPct),
+    ),
+    highCloudPct: averageNullableOrNull(
+      context.features.map((feature) => feature.weather.cloudCover.highPct),
+    ),
+    lowCloudPct: averageNullableOrNull(
+      context.features.map((feature) => feature.weather.cloudCover.lowPct),
+    ),
+    relativeHumidityPct: averageNullableOrNull(
+      context.features.map((feature) => feature.weather.relativeHumidityPct),
+    ),
+    visibilityMeters: averageNullableOrNull(
+      context.features.map((feature) => feature.weather.visibilityMeters),
+    ),
+    precipitationMillimeters: averageNullableOrNull(
+      context.features.map((feature) => feature.weather.precipitationMillimeters),
+    ),
+    uvIndex: averageNullableOrNull(
+      context.features.map((feature) => feature.weather.uvIndex),
+    ),
+  };
+}
+
 function averageNullable(values: Array<number | null>): number {
   const presentValues = values.filter((value): value is number => value !== null);
 
   if (presentValues.length === 0) {
     return 0;
+  }
+
+  return (
+    presentValues.reduce((sum, value) => sum + value, 0) / presentValues.length
+  );
+}
+
+function averageNullableOrNull(values: Array<number | null>): number | null {
+  const presentValues = values.filter((value): value is number => value !== null);
+
+  if (presentValues.length === 0) {
+    return null;
   }
 
   return (

@@ -24,7 +24,7 @@ export class OpenMeteoWeatherProvider implements WeatherProvider {
             : String(input.location.altitudeMeters),
         timezone: input.timezoneId,
         hourly:
-          "cloud_cover,cloud_cover_low,cloud_cover_mid,cloud_cover_high,visibility,relative_humidity_2m,dew_point_2m,precipitation",
+          "cloud_cover,cloud_cover_low,cloud_cover_mid,cloud_cover_high,visibility,relative_humidity_2m,dew_point_2m,precipitation,uv_index",
         forecast_days: "7",
       },
     );
@@ -49,6 +49,7 @@ export class OpenMeteoWeatherProvider implements WeatherProvider {
         relativeHumidityPct: hourly.relative_humidity_2m?.[index] ?? null,
         dewPointCelsius: hourly.dew_point_2m?.[index] ?? null,
         precipitationMillimeters: hourly.precipitation?.[index] ?? null,
+        uvIndex: hourly.uv_index?.[index] ?? null,
       }))
       .filter((sample) => isLocalIsoWithinRange(sample.timeIso, input.range));
   }

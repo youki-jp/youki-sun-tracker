@@ -1,0 +1,438 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Youki Sky Gradient: Model and Bun/Hono Integration</title>
+  <style>
+    :root {
+      --ink: #1b1712;
+      --muted: #665f57;
+      --paper: #fffaf2;
+      --card: #ffffff;
+      --line: #e7ddd0;
+      --accent: #bd6f2b;
+      --accent-soft: #fff0dd;
+      --blue: #355d86;
+      --blue-soft: #eaf3fb;
+      --green: #2f7650;
+      --green-soft: #eaf7ef;
+      --code: #211e1b;
+      --shadow: 0 14px 36px rgba(75, 47, 22, 0.08);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      color: var(--ink);
+      background:
+        radial-gradient(circle at 8% 0%, rgba(245, 190, 113, .22), transparent 32rem),
+        linear-gradient(180deg, #fbf2e6 0, var(--paper) 22rem, #f8f4ee 100%);
+      line-height: 1.6;
+    }
+    main { max-width: 1160px; margin: 0 auto; padding: 36px 22px 80px; }
+    h1, h2, h3 { line-height: 1.2; letter-spacing: -.02em; }
+    h1 { max-width: 860px; margin: 0 0 18px; font-size: clamp(2.2rem, 5vw, 4.2rem); }
+    h2 { margin: 0 0 16px; font-size: clamp(1.45rem, 3vw, 2.1rem); }
+    h3 { margin: 0 0 8px; font-size: 1.08rem; }
+    p { margin: 0 0 14px; }
+    a { color: var(--blue); }
+    code, pre { font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace; }
+    code { font-size: .92em; color: #7b4319; }
+    pre {
+      overflow: auto;
+      margin: 14px 0 0;
+      padding: 16px;
+      border-radius: 12px;
+      color: #f6eee3;
+      background: var(--code);
+      font-size: .82rem;
+      line-height: 1.55;
+      tab-size: 2;
+    }
+    .eyebrow { margin-bottom: 10px; color: var(--accent); font-weight: 800; letter-spacing: .1em; text-transform: uppercase; font-size: .76rem; }
+    .lead { max-width: 850px; color: var(--muted); font-size: 1.12rem; }
+    .hero { padding: 18px 0 34px; }
+    .notice, .card, .panel { border: 1px solid var(--line); border-radius: 18px; background: rgba(255,255,255,.86); box-shadow: var(--shadow); }
+    .notice { margin-top: 24px; padding: 18px 20px; background: var(--accent-soft); border-color: #f0c996; }
+    .notice strong { color: #7b4319; }
+    section { margin-top: 42px; }
+    .grid { display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); }
+    .card { padding: 20px; }
+    .card p:last-child { margin-bottom: 0; }
+    .muted { color: var(--muted); }
+    .small { font-size: .9rem; }
+    .tag { display: inline-block; padding: 3px 8px; margin: 0 4px 4px 0; border-radius: 99px; background: #f3eadf; color: #6c4b2f; font-size: .78rem; font-weight: 700; }
+    .tag.required { background: var(--blue-soft); color: #28577e; }
+    .tag.optional { background: var(--green-soft); color: #286743; }
+    .flow { display: grid; gap: 10px; grid-template-columns: repeat(5, 1fr); align-items: stretch; }
+    .flow-step { position: relative; padding: 16px 14px; border: 1px solid var(--line); border-radius: 14px; background: var(--card); }
+    .flow-step:not(:last-child)::after { content: "->"; position: absolute; right: -20px; top: 50%; z-index: 2; color: var(--accent); font-weight: 900; transform: translateY(-50%); }
+    .number { display: grid; place-items: center; width: 28px; height: 28px; margin-bottom: 10px; border-radius: 50%; background: var(--accent); color: #fff; font-weight: 800; }
+    .formula { padding: 14px 16px; border-left: 4px solid var(--accent); background: #fff5e9; font-family: "SFMono-Regular", Consolas, monospace; font-size: .88rem; overflow: auto; }
+    table { width: 100%; border-collapse: collapse; font-size: .92rem; }
+    th, td { padding: 11px 10px; border-bottom: 1px solid var(--line); vertical-align: top; text-align: left; }
+    th { color: #694523; background: #fff7ed; font-size: .8rem; letter-spacing: .04em; text-transform: uppercase; }
+    tr:last-child td { border-bottom: 0; }
+    .table-wrap { overflow: auto; border: 1px solid var(--line); border-radius: 14px; }
+    .two { display: grid; gap: 18px; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .callout { padding: 16px 18px; border-radius: 14px; background: var(--blue-soft); border: 1px solid #c8dff2; }
+    .callout.green { background: var(--green-soft); border-color: #c9e6d3; }
+    .callout.warn { background: #fff3e6; border-color: #f2c99c; }
+    .swatches { display: flex; height: 54px; overflow: hidden; border-radius: 10px; border: 1px solid rgba(27,23,18,.1); }
+    .swatches span { flex: 1; }
+    .swatches.sky span:nth-child(1) { background:#526b8a; }
+    .swatches.sky span:nth-child(2) { background:#8094a7; }
+    .swatches.sky span:nth-child(3) { background:#bd9da0; }
+    .swatches.sky span:nth-child(4) { background:#e88c73; }
+    .swatches.sky span:nth-child(5) { background:#ffd17a; }
+    .swatches.day span:nth-child(1) { background:#111f35; }
+    .swatches.day span:nth-child(2) { background:#355c82; }
+    .swatches.day span:nth-child(3) { background:#87a8bb; }
+    .swatches.day span:nth-child(4) { background:#d4d6c5; }
+    .swatches.day span:nth-child(5) { background:#f2ad55; }
+    .footer { margin-top: 50px; padding-top: 20px; border-top: 1px solid var(--line); color: var(--muted); font-size: .9rem; }
+    @media (max-width: 900px) {
+      .flow { grid-template-columns: 1fr; }
+      .flow-step:not(:last-child)::after { content: "\\2193"; right: auto; left: 50%; top: auto; bottom: -22px; transform: translateX(-50%); }
+    }
+    @media (max-width: 720px) { .two { grid-template-columns: 1fr; } main { padding-inline: 15px; } }
+  </style>
+</head>
+<body>
+<main>
+  <header class="hero">
+    <div class="eyebrow">Youki technical explainer</div>
+    <h1>How the live sky gradient works</h1>
+    <p class="lead">The demo does not choose one canned mood such as vivid or pastel. It synthesizes a vertical sky from the sun's current elevation and the atmosphere around it, then emits a stable set of colors that SwiftUI can render and animate.</p>
+    <div class="notice"><strong>Repository status:</strong> the implementation currently lives in the unmerged <code>origin/feature/gradient-features</code> branch and the separate <a href="https://github.com/youki-jp/youki-prototype/blob/main/gradient.html">youki-prototype/gradient.html</a> reference. The Bun backend timeline work is present there; the Swift generator is still a handoff, not yet implemented in the iOS target.</div>
+  </header>
+
+  <section>
+    <h2>1. The end-to-end data flow</h2>
+    <div class="flow">
+      <div class="flow-step"><div class="number">1</div><h3>Location</h3><p class="small muted">Latitude, longitude, optional altitude, and target local date.</p></div>
+      <div class="flow-step"><div class="number">2</div><h3>Solar geometry</h3><p class="small muted">The backend calculates elevation, azimuth, twilight crossings, and solar milestones.</p></div>
+      <div class="flow-step"><div class="number">3</div><h3>Atmosphere</h3><p class="small muted">Open-Meteo supplies hourly cloud, visibility, humidity, rain, aerosol, dust, and PM2.5 data.</p></div>
+      <div class="flow-step"><div class="number">4</div><h3>Join and interpolate</h3><p class="small muted">Solar and atmospheric rows use different grids, so values are interpolated at the render time.</p></div>
+      <div class="flow-step"><div class="number">5</div><h3>Generate sky</h3><p class="small muted"><code>generateSky(sample)</code> returns stops, glow, and cloud-band geometry.</p></div>
+    </div>
+    <div class="callout green" style="margin-top:18px"><strong>Recommended ownership:</strong> Bun/Hono owns location normalization, external API calls, solar geometry, and the raw timeline. The gradient generator is presentation logic and can live in SwiftUI. If multiple clients need identical output, it can also be ported to TypeScript and exposed as an optional server-rendered model.</div>
+  </section>
+
+  <section>
+    <h2>2. What the generator calculates</h2>
+    <div class="grid">
+      <article class="card"><h3>A. Daylight and glow</h3><p><code>dayF</code> transitions from night to day between roughly -8 and 10 degrees of sun elevation. <code>highSun</code> adds gradual midday variation from 10 to 60 degrees. <code>glowF</code> is a Gaussian-like curve centered just below the horizon, so the warmest band appears near sunrise and sunset instead of remaining gold all day.</p><div class="formula">dayF = smoothstep(-8, 10, elevation)<br>highSun = smoothstep(10, 60, elevation)<br>glowF = exp(-((elevation + 1) / 8)^2)</div></article>
+      <article class="card"><h3>B. Atmospheric modifiers</h3><p>Cloud layers are treated differently. Low cloud can block the horizon; high cloud can catch warm light and improve the scene. Aerosol, dust, and PM2.5 warm the long light path. Humidity, low visibility, and rain wash contrast toward a softer result.</p><div class="formula">blocked = clamp01((lowCloud - .30) / .60)<br>highCatch = bell(highCloud, .15, .60)<br>wet = clamp01(precipitation / 1.5)</div></article>
+      <article class="card"><h3>C. Cool zenith anchor</h3><p>The top of the frame starts from a blue-gray zenith. Its lightness increases with daylight and overcast conditions. Its chroma is high for a clear midday sky and reduced by cloud, aerosol, and haze.</p><div class="formula">topL = f(dayF, highSun, overcastF)<br>topC = f(clearChroma, cloudTotal, haze)<br>topH = 250 + warmTint * lowSunTint</div></article>
+      <article class="card"><h3>D. Warm horizon anchor</h3><p>The bottom of the frame is a separate horizon color. Its warmth is controlled by <code>warmVigour</code>, which combines the sun's low elevation with cloud blockage, haze, and precipitation. At midday the warm presence fades, leaving a pale atmospheric horizon.</p><div class="formula">warmVigour = glowF * (1 - .60 * blocked)<br>               * (1 - .42 * haze) * (1 - .80 * wet)</div></article>
+      <article class="card"><h3>E. The color path</h3><p>The generator interpolates the cool and warm anchors in rectangular Oklab coordinates. This allows the path to pass through low chroma instead of forcing a blue-to-gold transition through an unwanted green hue. A controlled magenta bulge is added only when low-sun aerosol or high cloud supports it.</p><div class="formula">bulge = pink * .086 * sin(pi * t)^1.4<br>pink = f(aerosolWarm, highCatch, glowF, blocked, wet)</div></article>
+      <article class="card"><h3>F. Display-safe output</h3><p>Oklab/Oklch values are converted to sRGB hex. If a color falls outside the sRGB gamut, chroma is reduced iteratively instead of clipping RGB channels, which would shift warm hues.</p><div class="swatches sky" aria-label="Example twilight color ramp"><span></span><span></span><span></span><span></span><span></span></div></article>
+    </div>
+  </section>
+
+  <section>
+    <h2>3. Output model</h2>
+    <p class="muted">The output is intentionally stable. Every generated sky has nine stops, even when some conditions are missing or the scene is night. Stable shape matters because SwiftUI can interpolate two gradients smoothly only when their stop counts remain the same.</p>
+    <div class="two">
+      <div class="card"><h3>Vertical sky stops</h3><pre><code>STOP_POSITIONS = [
+  0.00, 0.16, 0.32, 0.46, 0.60,
+  0.72, 0.83, 0.93, 1.00
+]
+
+stops: [
+  { hex: "#526B8A", position: 0.00 },
+  // ... exactly nine total
+  { hex: "#FFD17A", position: 1.00 }
+]</code></pre></div>
+      <div class="card"><h3>Additional visual layers</h3><pre><code>glow: {
+  centerX: 0.5,
+  centerY: 0.89,
+  radius: 0.30,
+  intensity: 0.42
+}
+
+cloudBands: [{
+  y: 0.16,
+  height: 0.13,
+  hex: "#8A96A4",
+  opacity: 0.24,
+  blur: 0.055
+}]</code></pre></div>
+    </div>
+    <p style="margin-top:16px">The <code>ramp</code> output is a five-color sample of the same vertical sky and is suitable for the existing color-analysis card. A separate <code>dayRamp</code> can be made by sampling one stop at several times from midnight to midnight.</p>
+    <div class="swatches day" aria-label="Example day color ramp"><span></span><span></span><span></span><span></span><span></span></div>
+  </section>
+
+  <section>
+    <h2>4. Input parameters</h2>
+    <p class="muted">The reference generator receives one flattened sample. Its renderer should receive finite values, even when the upstream API returns null. Keep nulls in the domain response for confidence and diagnostics; apply renderer defaults only immediately before generation.</p>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Parameter</th><th>Unit / range</th><th>Required?</th><th>Effect</th><th>Default for rendering</th></tr></thead>
+        <tbody>
+          <tr><td><code>elevationDegrees</code></td><td>apparent solar degrees</td><td><span class="tag required">required</span></td><td>Main driver: night, twilight glow, daylight, and midday sky.</td><td>None. Calculate it.</td></tr>
+          <tr><td><code>cloudTotalPct</code></td><td>0 to 100%</td><td><span class="tag required">required</span></td><td>Controls overcast lightness and how far warmth spreads.</td><td>0</td></tr>
+          <tr><td><code>cloudLowPct</code></td><td>0 to 100%</td><td><span class="tag required">required</span></td><td>Blocks horizon light when sufficiently high.</td><td>0</td></tr>
+          <tr><td><code>cloudMidPct</code></td><td>0 to 100%</td><td><span class="tag optional">optional</span></td><td>Currently affects the middle cloud band more than the anchor colors.</td><td>0</td></tr>
+          <tr><td><code>cloudHighPct</code></td><td>0 to 100%</td><td><span class="tag required">required</span></td><td>Catches warm light and creates a stronger layered sky.</td><td>0</td></tr>
+          <tr><td><code>visibilityMeters</code></td><td>meters, positive</td><td><span class="tag required">required</span></td><td>Low visibility increases haze and washes contrast.</td><td>24,000</td></tr>
+          <tr><td><code>relativeHumidityPct</code></td><td>0 to 100%</td><td><span class="tag required">required</span></td><td>High humidity contributes to pastel haze.</td><td>60</td></tr>
+          <tr><td><code>precipitationMillimeters</code></td><td>hourly mm</td><td><span class="tag optional">optional</span></td><td>Reduces vividness and warm horizon intensity.</td><td>0</td></tr>
+          <tr><td><code>aerosolOpticalDepth</code></td><td>unitless, normally near 0 to 1</td><td><span class="tag required">required</span></td><td>Warms the long light path and increases color spread.</td><td>0.08</td></tr>
+          <tr><td><code>dustUgM3</code></td><td>micrograms per cubic meter</td><td><span class="tag optional">optional</span></td><td>Pushes warm tones toward amber and red.</td><td>0</td></tr>
+          <tr><td><code>pm25UgM3</code></td><td>micrograms per cubic meter</td><td><span class="tag optional">optional</span></td><td>Adds a smaller warm/haze contribution.</td><td>0</td></tr>
+          <tr><td><code>azimuthDegrees</code></td><td>0 to 360 degrees</td><td><span class="tag optional">not used by generator</span></td><td>Useful for diagnostics and future directional sun glow, but not for the current vertical strip.</td><td>Keep from API</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="callout warn" style="margin-top:18px"><strong>Not currently used by <code>generateSky()</code>:</strong> UV index, dew point, PM10, ozone, phase, and rising/setting state. They may remain in the API because they are useful to the score or UI, but they should not be added to the gradient formula without new calibration checks.</div>
+  </section>
+
+  <section>
+    <h2>5. Why the timeline endpoint is necessary</h2>
+    <p>The existing prediction endpoint returns a sunrise or sunset score and a short event window. That is enough for a summary card, but not enough to render a sky that changes as the user scrubs through a whole day.</p>
+    <div class="two">
+      <div class="card"><h3>Use this endpoint</h3><pre><code>POST /api/v1/sky-day/timeline
+Content-Type: application/json
+
+{
+  "location": {
+    "latitude": 35.4437,
+    "longitude": 139.638,
+    "altitudeMeters": 40
+  },
+  "targetDateIso": "2026-09-05"
+}</code></pre></div>
+      <div class="card"><h3>Response shape</h3><pre><code>{
+  "location": { "timezoneId": "Asia/Tokyo" },
+  "targetDateIso": "2026-09-05",
+  "milestones": { "sunriseIso": "...", "sunsetIso": "..." },
+  "solar": [{
+    "timeIso": "2026-09-05T05:16:00",
+    "elevationDegrees": -0.27,
+    "azimuthDegrees": 80.8,
+    "isRising": true,
+    "phase": "goldenHourAm"
+  }],
+  "weather": [{ "timeIso": "...", "cloudCover": {} }],
+  "airQuality": [{ "timeIso": "...", "aerosolOpticalDepth": 0.21 }],
+  "summary": { "sunriseScore": 22, "sunsetScore": 51 }
+}</code></pre></div>
+    </div>
+    <p style="margin-top:16px"><strong>Different grids are intentional.</strong> Solar samples are adaptive and dense around twilight; weather and air quality are hourly. At a render time, interpolate numeric fields between the two bracketing rows. Carry categorical fields such as <code>phase</code> and <code>isRising</code> from the nearer row.</p>
+    <div class="callout"><strong>Time-zone rule:</strong> the timeline's <code>timeIso</code> strings are naive local wall-clock values. They are local to <code>location.timezoneId</code>, not UTC instants. On the server, use the existing local-time conversion helper; on iOS, decode components with the returned time zone. Do not blindly call <code>Date.parse()</code> on them.</div>
+  </section>
+
+  <section>
+    <h2>6. Integrating it into the Bun/Hono backend</h2>
+    <p>The gradient can be integrated in two ways. The first keeps the architecture clean and is recommended for Youki. The second is useful when the server must guarantee identical output for web, iOS, and other clients.</p>
+
+    <div class="two">
+      <div class="card"><h3>Option A: backend serves data, client renders</h3><p>Keep <code>SkyDayTimelineService</code> as the source of truth for data. Port <code>generateSky()</code> to Swift and call it from the iOS view model. The backend does not need to know about SwiftUI rendering details.</p><p class="small muted">Best when the gradient is a presentation concern and iOS should remain responsible for visuals.</p></div>
+      <div class="card"><h3>Option B: backend returns a generated model</h3><p>Port the pure generator to TypeScript, interpolate one timeline sample at a requested <code>atIso</code>, and return <code>stops</code>, <code>ramp</code>, <code>glow</code>, and <code>cloudBands</code> from a dedicated endpoint.</p><p class="small muted">Best when multiple clients need byte-for-byte consistent sky output.</p></div>
+    </div>
+
+    <h3 style="margin-top:24px">6.1 Suggested server files</h3>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Layer</th><th>Suggested file</th><th>Responsibility</th></tr></thead>
+        <tbody>
+          <tr><td>Domain</td><td><code>server/src/domain/sky-gradient.ts</code></td><td>Input sample, stop, glow, cloud-band, and gradient-model interfaces.</td></tr>
+          <tr><td>Infrastructure / pure engine</td><td><code>server/src/infrastructure/engines/sky-gradient-engine.ts</code></td><td>TypeScript port of the pure <code>generateSky()</code> math, including Oklab conversion and gamut mapping.</td></tr>
+          <tr><td>Application</td><td><code>server/src/application/services/sky-gradient-service.ts</code></td><td>Fetch or receive a day timeline, interpolate the requested moment, and call the engine.</td></tr>
+          <tr><td>HTTP</td><td><code>server/src/http/routes/sky-day.ts</code></td><td>Validate location/date/time and expose the generated model.</td></tr>
+          <tr><td>Factory</td><td><code>server/src/infrastructure/factories/create-sky-day-timeline-service.ts</code></td><td>Wire existing Open-Meteo providers and the engine without putting provider logic in Hono.</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3 style="margin-top:24px">6.2 Domain contract</h3>
+    <pre><code>// server/src/domain/sky-gradient.ts
+export interface SkyGradientSample {
+  elevationDegrees: number;
+  cloudTotalPct: number;
+  cloudLowPct: number;
+  cloudMidPct: number;
+  cloudHighPct: number;
+  visibilityMeters: number;
+  relativeHumidityPct: number;
+  precipitationMillimeters: number;
+  aerosolOpticalDepth: number;
+  dustUgM3: number;
+  pm25UgM3: number;
+}
+
+export interface SkyGradientModel {
+  stops: Array&lt;{ hex: string; position: number }&gt;; // always 9
+  ramp: string[]; // five samples across the same vertical sky
+  glow: {
+    centerX: number;
+    centerY: number;
+    radius: number;
+    intensity: number;
+  };
+  cloudBands: Array&lt;{
+    y: number;
+    height: number;
+    hex: string;
+    opacity: number;
+    blur: number;
+  }&gt;;
+}</code></pre>
+
+    <h3 style="margin-top:24px">6.3 Flatten and default one interpolated timeline sample</h3>
+    <pre><code>const DEFAULTS = {
+  cloudTotalPct: 0,
+  cloudLowPct: 0,
+  cloudMidPct: 0,
+  cloudHighPct: 0,
+  visibilityMeters: 24_000,
+  relativeHumidityPct: 60,
+  precipitationMillimeters: 0,
+  aerosolOpticalDepth: 0.08,
+  dustUgM3: 0,
+  pm25UgM3: 0,
+};
+
+function flattenAt(timeline: SkyDayTimelineResponse, atIso: string) {
+  const solar = interpolateSolar(timeline.solar, atIso);
+  const weather = interpolateWeather(timeline.weather, atIso);
+  const air = interpolateAir(timeline.airQuality, atIso);
+
+  return {
+    ...DEFAULTS,
+    elevationDegrees: solar.elevationDegrees,
+    cloudTotalPct: weather.cloudCover.totalPct ?? DEFAULTS.cloudTotalPct,
+    cloudLowPct: weather.cloudCover.lowPct ?? DEFAULTS.cloudLowPct,
+    cloudMidPct: weather.cloudCover.midPct ?? DEFAULTS.cloudMidPct,
+    cloudHighPct: weather.cloudCover.highPct ?? DEFAULTS.cloudHighPct,
+    visibilityMeters: weather.visibilityMeters ?? DEFAULTS.visibilityMeters,
+    relativeHumidityPct:
+      weather.relativeHumidityPct ?? DEFAULTS.relativeHumidityPct,
+    precipitationMillimeters:
+      weather.precipitationMillimeters ?? DEFAULTS.precipitationMillimeters,
+    aerosolOpticalDepth:
+      air.aerosolOpticalDepth ?? DEFAULTS.aerosolOpticalDepth,
+    dustUgM3: air.dustUgM3 ?? DEFAULTS.dustUgM3,
+    pm25UgM3:
+      air.particulateMatter2_5UgM3 ?? DEFAULTS.pm25UgM3,
+  };
+}</code></pre>
+    <p class="small muted">The reference uses the same defaults at its rendering boundary. Missing provider values should still remain null in the API response, so prediction confidence and diagnostics are not falsely inflated.</p>
+
+    <h3 style="margin-top:24px">6.4 Interpolation rule</h3>
+    <pre><code>function lerp(a: number, b: number, t: number): number {
+  return a + (b - a) * t;
+}
+
+// Pseudocode. Compare local wall-clock values in the response timezone.
+function interpolateNumeric(rows, atIso, keys) {
+  const [before, after] = bracketRows(rows, atIso);
+  if (!before) return after;
+  if (!after) return before;
+
+  const span = timeDistance(before.timeIso, after.timeIso);
+  const t = span === 0 ? 0 : timeDistance(before.timeIso, atIso) / span;
+  return Object.fromEntries(keys.map((key) =&gt; [
+    key,
+    lerp(before[key], after[key], t),
+  ]));
+}
+
+// Categorical values are carried from the nearer row:
+phase = t &lt; 0.5 ? before.phase : after.phase;</code></pre>
+    <div class="callout warn"><strong>Important existing limitation:</strong> the feature branch's prediction alignment still uses nearest samples for scoring. That is acceptable for the current heuristic score, but not for a smooth gradient. The timeline client or a new shared backend helper must interpolate atmospheric values between the bracketing hours.</div>
+
+    <h3 style="margin-top:24px">6.5 Dedicated Hono endpoint</h3>
+    <pre><code>// server/src/http/routes/sky-day.ts
+router.post("/gradient", async (c) =&gt; {
+  const request = parseGradientRequest(await readJsonBody(c.req.raw));
+  const response = await service.generateAt(request);
+  return c.json(response, 200);
+});
+
+// Request:
+{
+  "location": {
+    "latitude": 35.4437,
+    "longitude": 139.638,
+    "altitudeMeters": 40
+  },
+  "targetDateIso": "2026-09-05",
+  "atIso": "2026-09-05T05:16:00"
+}
+
+// Response:
+{
+  "atIso": "2026-09-05T05:16:00",
+  "sample": {
+    "elevationDegrees": -0.27,
+    "cloudTotalPct": 52,
+    "cloudHighPct": 48,
+    "aerosolOpticalDepth": 0.18
+  },
+  "gradient": {
+    "stops": [],
+    "ramp": [],
+    "glow": {},
+    "cloudBands": []
+  }
+}</code></pre>
+    <p class="small muted">In production, use a separate application service for <code>generateAt</code> and keep Hono responsible only for parsing, validation, and serialization. Do not make the route call Open-Meteo directly.</p>
+
+    <h3 style="margin-top:24px">6.6 Register the route</h3>
+    <pre><code>// server/src/app.ts
+const skyDayTimelineService = createSkyDayTimelineService();
+app.route("/api/v1/sky-day", createSkyDayRouter(skyDayTimelineService));</code></pre>
+    <p class="small muted">This route registration is already part of <code>origin/feature/gradient-features</code>. That branch also adds CORS for <code>/api/*</code>, which the browser reference needs when it runs on a different origin.</p>
+  </section>
+
+  <section>
+    <h2>7. Porting the generator safely</h2>
+    <div class="grid">
+      <article class="card"><h3>Keep these constants identical</h3><p>Stop positions, daylight thresholds, glow curve, cloud blockage, warm spread, Oklab matrices, chroma reduction factor, and magenta bulge are calibrated values. Copy the reference into a pure TypeScript module before changing behavior.</p></article>
+      <article class="card"><h3>Do not interpolate in sRGB</h3><p>Interpolating a blue-to-gold ramp directly in RGB produces muddy intermediate colors. Use the reference's Oklab/Oklch path, then flatten each stop to ordinary sRGB hex for the client.</p></article>
+      <article class="card"><h3>Keep geometry fractional</h3><p><code>y</code>, cloud height, blur, glow center, and glow radius are fractions of the actual sky height. This keeps the collapsed 266 point view and full-screen expanded view visually aligned.</p></article>
+      <article class="card"><h3>Handle polar locations</h3><p>Milestones such as civil dawn or sunset may be null. A day timeline must not force-unwrap them. The sky generator itself can still render from solar elevation samples when a named milestone does not exist.</p></article>
+    </div>
+  </section>
+
+  <section>
+    <h2>8. Verification plan</h2>
+    <div class="two">
+      <div class="card"><h3>Reference checks</h3><pre><code>cd /path/to/youki-prototype
+bun run checks/run.mjs
+bun run checks/mutations.mjs</code></pre><p class="small muted">The current reference passes 15 checks. Mutation testing exercises nine deliberate faults and currently reports zero escapes.</p></div>
+      <div class="card"><h3>Youki backend checks</h3><pre><code>cd server
+bun build src/index.ts --target bun \
+  --outdir /tmp/youki-server-build
+
+curl -X POST \
+  http://localhost:3000/api/v1/sky-day/timeline \
+  -H 'content-type: application/json' \
+  -d '{"location":{"latitude":35.4437,"longitude":139.638},"targetDateIso":"2026-09-05"}'</code></pre><p class="small muted">Add deterministic tests for time interpolation, null defaults, stable nine-stop output, and a handful of golden fixture samples.</p></div>
+    </div>
+  </section>
+
+  <section>
+    <h2>9. Recommended implementation order for this repository</h2>
+    <ol>
+      <li>Bring the three commits from <code>origin/feature/gradient-features</code> into the working branch, resolving documentation and domain-file conflicts with the current uncommitted integration work.</li>
+      <li>Keep <code>POST /api/v1/sky-day/timeline</code> as the canonical raw-data contract.</li>
+      <li>Add shared, timezone-safe interpolation. Do not use nearest-hour values for the visual gradient.</li>
+      <li>Choose Option A first: port the pure generator to Swift and feed it timeline samples through the existing view-model seam.</li>
+      <li>Add the server-rendered <code>/gradient</code> endpoint only if web and iOS need identical generated colors or if server-side caching is valuable.</li>
+      <li>Capture more real sky references for partly cloudy conditions and deep twilight before tuning constants. Those are the reference implementation's stated gaps.</li>
+    </ol>
+  </section>
+
+  <footer class="footer">
+    <p>Sources: <a href="https://github.com/youki-jp/youki-prototype/blob/main/gradient.html">gradient.html</a>, <a href="https://github.com/youki-jp/youki-prototype/blob/main/checks/README.md">calibration checks</a>, and the Youki branch documentation at <code>docs/sky-gradient-implementation.md</code>.</p>
+    <p>This page describes the demo and an integration design. It does not claim that the SwiftUI generator or a server-side gradient endpoint has already been implemented in <code>develop</code>.</p>
+  </footer>
+</main>
+</body>
+</html>

@@ -59,6 +59,7 @@ extension ContentView {
                     }
             }
             .buttonStyle(.plain)
+            .accessibilityIdentifier("wakeAlarmButton")
         }
     }
 
@@ -124,6 +125,7 @@ extension ContentView {
                     }
                 }
                 .buttonStyle(.plain)
+                .accessibilityIdentifier("moment.\(moment.id)")
             }
         }
     }
@@ -236,15 +238,18 @@ extension ContentView {
             Spacer()
 
             HStack(spacing: 2) {
-                bottomIconButton(systemName: isSkyExpanded ? "arrow.down.right.and.arrow.up.left" : "arrow.up.left.and.arrow.down.right") {
+                bottomIconButton(
+                    systemName: isSkyExpanded ? "arrow.down.right.and.arrow.up.left" : "arrow.up.left.and.arrow.down.right",
+                    accessibilityIdentifier: "expandButton"
+                ) {
                     withAnimation(.spring(response: 0.6, dampingFraction: 0.88)) {
                         isSkyExpanded.toggle()
                     }
                 }
-                bottomIconButton(systemName: "calendar") {
+                bottomIconButton(systemName: "calendar", accessibilityIdentifier: "calendarButton") {
                     activeSheet = .calendar
                 }
-                bottomIconButton(systemName: "slider.horizontal.3") {
+                bottomIconButton(systemName: "slider.horizontal.3", accessibilityIdentifier: "settingsButton") {
                     activeSheet = .settings
                 }
             }
@@ -257,7 +262,11 @@ extension ContentView {
         }
     }
 
-    func bottomIconButton(systemName: String, action: @escaping () -> Void) -> some View {
+    func bottomIconButton(
+        systemName: String,
+        accessibilityIdentifier: String,
+        action: @escaping () -> Void
+    ) -> some View {
         Button(action: action) {
             Image(systemName: systemName)
                 .font(.system(size: 18, weight: .semibold))
@@ -265,5 +274,6 @@ extension ContentView {
                 .foregroundStyle(inkColor.opacity(0.68))
         }
         .buttonStyle(.plain)
+        .accessibilityIdentifier(accessibilityIdentifier)
     }
 }

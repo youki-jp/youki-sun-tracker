@@ -43,7 +43,7 @@ Implemented behavior:
 
 ### SwiftUI frontend
 
-The frontend is a local visual prototype that mirrors the Youki mock:
+The frontend mirrors the Youki mock and can now load the current forecast from the backend:
 
 - Dark and light themes
 - Sunrise score and summary
@@ -56,13 +56,11 @@ The frontend is a local visual prototype that mirrors the Youki mock:
 - Settings sheet
 - Paywall preview
 
-The screen currently reads from `PrototypeDay.sampleDays`. `ServerViewModel` can call the backend root URL, but `ContentView` does not use it and does not yet decode sky-color predictions.
+The screen starts with `PrototypeDay.sampleDays` as a fallback, requests the user's current location, calls `POST /api/v1/sky-color/predictions`, and maps the live response into the existing presentation model. Live score, color palette, confidence, reasons, event times, cloud cover, and UV values are displayed when the request succeeds.
 
 ## What Is Not Connected Yet
 
-- CoreLocation is not wired into the current SwiftUI screen.
-- The iOS app does not call `POST /api/v1/sky-color/predictions`.
-- Backend JSON is not mapped into `PrototypeDay` or a production forecast view model.
+- The live iOS response currently represents one target day. The calendar does not yet load a full seven-day set from the backend.
 - Wake alarms, notifications, widgets, subscriptions, saved locations, and persistence are visual previews only.
 - Solar elevation and azimuth are currently approximated in the Open-Meteo solar adapter.
 - There are no automated backend or Swift unit tests in the repository.
@@ -149,6 +147,7 @@ Weather fields:
 - `relative_humidity_2m`
 - `dew_point_2m`
 - `precipitation`
+- `uv_index`
 
 Air-quality fields:
 
@@ -158,17 +157,17 @@ Air-quality fields:
 - `dust`
 - `ozone`
 
+The prediction response also includes averaged forecast conditions for the scoring window so the iOS client can show cloud cover and UV values without reimplementing the backend's provider logic.
+
 The rationale for each input is documented in [`docs/sky-color-prediction.md`](sky-color-prediction.md).
 
 ## Recommended Next Milestones
 
-1. Add a Swift API client and Codable response types for the nested predictions endpoint.
-2. Add a location service that owns CoreLocation permissions and current coordinates.
-3. Introduce a frontend forecast view model that maps API predictions into presentation models.
-4. Replace sample-day timing, score, and palette values with backend data while retaining preview fixtures.
-5. Improve solar geometry with a timezone-safe astronomical calculation and real elevation/azimuth samples.
-6. Add deterministic backend tests for request validation, feature alignment, and heuristic scoring.
-7. Add integration tests with fixture responses for Open-Meteo failures and incomplete data.
+1. Load a full seven-day forecast set without making an expensive one-request-per-event call from the client.
+2. Replace the remaining preview-only location, alarm, notification, widget, subscription, and persistence flows.
+3. Improve solar geometry with a timezone-safe astronomical calculation and real elevation/azimuth samples.
+4. Add deterministic backend tests for request validation, feature alignment, and heuristic scoring.
+5. Add integration tests with fixture responses for Open-Meteo failures and incomplete data.
 
 ## Important Decision
 

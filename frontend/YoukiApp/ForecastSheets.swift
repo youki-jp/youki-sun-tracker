@@ -8,7 +8,7 @@ extension ContentView {
                     .font(.system(size: 18, weight: .bold, design: .rounded))
                     .padding(.bottom, 12)
 
-                ForEach(PrototypeDay.sampleDays) { day in
+                ForEach(serverViewModel.forecastDays) { day in
                     Button {
                         if day.isLocked {
                             activeSheet = .paywall
@@ -56,6 +56,7 @@ extension ContentView {
                         .padding(.vertical, 14)
                     }
                     .buttonStyle(.plain)
+                    .accessibilityIdentifier("calendarDay.\(day.id)")
 
                     Divider()
                 }
@@ -71,9 +72,12 @@ extension ContentView {
                         .padding(.top, 16)
                 }
                 .buttonStyle(.plain)
+                .accessibilityIdentifier("calendarInfoButton")
 
                 if showCalendarInfo {
-                    Text("This prototype uses a curated quality score to show how sunrise potential could be presented over the week. Locked days hint at a future premium forecast view.")
+                    Text(serverViewModel.isLive
+                         ? "This forecast uses your current location and live weather and air-quality data from the backend."
+                         : "Live location data is unavailable, so the prototype sample forecast is being shown.")
                         .font(.system(size: 11, weight: .medium, design: .rounded))
                         .foregroundStyle(inkColor.opacity(0.55))
                         .lineSpacing(3)
@@ -113,6 +117,7 @@ extension ContentView {
                 .labelsHidden()
                 .pickerStyle(.segmented)
                 .frame(width: 142)
+                .accessibilityIdentifier("themePicker")
             }
             .padding(.vertical, 12)
             .overlay(alignment: .bottom) {
@@ -131,6 +136,7 @@ extension ContentView {
                 .padding(.vertical, 9)
                 .background(accentColor, in: Capsule())
                 .foregroundStyle(.white)
+                .accessibilityIdentifier("upgradeButton")
             }
 
             settingsToggleRow(
@@ -138,12 +144,14 @@ extension ContentView {
                 subtitle: "Wake you when the forecast peaks.",
                 isOn: $smartAlarmEnabled
             )
+            .accessibilityIdentifier("smartAlarmToggle")
 
             settingsToggleRow(
                 title: "Sunset alerts",
                 subtitle: "Evening reminders for strong glow days.",
                 isOn: $sunsetAlertEnabled
             )
+            .accessibilityIdentifier("sunsetAlertsToggle")
 
             Button {
                 activeSheet = .locations
@@ -163,6 +171,7 @@ extension ContentView {
                 .padding(.vertical, 14)
             }
             .buttonStyle(.plain)
+            .accessibilityIdentifier("allSettingsButton")
 
             Spacer()
         }
@@ -239,6 +248,9 @@ extension ContentView {
 
             Button {
                 activeSheet = nil
+                Task {
+                    await serverViewModel.loadForecast()
+                }
             } label: {
                 HStack(spacing: 10) {
                     Image(systemName: "location.circle.fill")
@@ -249,6 +261,7 @@ extension ContentView {
                 .padding(.vertical, 14)
             }
             .buttonStyle(.plain)
+            .accessibilityIdentifier("useLocationButton")
             .overlay(alignment: .bottom) {
                 Divider()
             }
@@ -274,6 +287,7 @@ extension ContentView {
                     .padding(.vertical, 14)
                 }
                 .buttonStyle(.plain)
+                .accessibilityIdentifier("savedLocation.\(location.id)")
                 .overlay(alignment: .bottom) {
                     Divider()
                 }
@@ -299,6 +313,7 @@ extension ContentView {
                 .padding(.vertical, 16)
             }
             .buttonStyle(.plain)
+            .accessibilityIdentifier("addLocationButton")
 
             Spacer()
         }
@@ -363,6 +378,7 @@ extension ContentView {
                     .background(accentColor, in: Capsule())
             }
             .buttonStyle(.plain)
+            .accessibilityIdentifier("startTrialButton")
             .padding(.top, 18)
 
             Text("Restore purchases")
@@ -417,5 +433,6 @@ extension ContentView {
             }
         }
         .buttonStyle(.plain)
+        .accessibilityIdentifier(plan == .yearly ? "yearlyPlanButton" : "monthlyPlanButton")
     }
 }

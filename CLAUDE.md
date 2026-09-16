@@ -6,7 +6,7 @@ Read this file before making changes. It is the shortest reliable summary of the
 
 Youki is a sunrise and sunset sky-color forecast prototype with two parts:
 
-- `frontend/` is an iOS 17+ SwiftUI visual prototype. The main screen still uses local Tokyo sample data and is not connected to the prediction API.
+- `frontend/` is an iOS 17+ SwiftUI app. The main screen requests the current device location and loads the current forecast from the prediction API, with local Tokyo sample data as a fallback.
 - `server/` is a Bun + Hono TypeScript backend. It calls Open-Meteo, normalizes solar, weather, and air-quality data, and returns heuristic sky-color predictions.
 
 The UI prototype and backend are intentionally at different integration stages. Do not assume that changing a backend response will automatically change the iOS screen.
@@ -33,7 +33,11 @@ For a fuller snapshot, read [`docs/current-state.md`](docs/current-state.md). Fo
 - `frontend/YoukiApp/ForecastSheets.swift`: calendar, settings, locations, and paywall sheets.
 - `frontend/YoukiApp/PrototypeModels.swift`: temporary UI models and sample data.
 - `frontend/YoukiApp/SkyBackgroundView.swift`: generated sky background.
-- `frontend/YoukiApp/ServerViewModel.swift` and `AppConfig.swift`: initial backend connection seam; not currently used by `ContentView`.
+- `frontend/YoukiApp/ServerViewModel.swift`: location and forecast loading state used by `ContentView`.
+- `frontend/YoukiApp/SkyColorAPI.swift`: request/response DTOs and the backend HTTP client.
+- `frontend/YoukiApp/LocationManager.swift`: one-shot Core Location authorization and location retrieval.
+- `frontend/YoukiApp/ForecastMapper.swift`: maps backend predictions into the existing visual presentation model.
+- `frontend/YoukiApp/AppConfig.swift`: backend URL configuration seam.
 
 ## Backend Contract
 
@@ -50,7 +54,7 @@ Prediction endpoints:
 
 Both endpoints also accept optional `targetDateIso` (`YYYY-MM-DD`) and `requestedEvents` (`sunrise`, `sunset`). If events are omitted, both are requested.
 
-The response includes a resolved timezone, generation time, score, confidence, label, estimated color, dominant colors, reasons, solar event window, and twilight boundaries.
+The response includes a resolved timezone, generation time, score, confidence, label, estimated color, dominant colors, reasons, averaged forecast conditions, solar event window, and twilight boundaries.
 
 ## Development Commands
 
@@ -88,7 +92,8 @@ DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer xcodebuild \
 
 ## Important Limitations
 
-- The iOS app displays curated sample data; no Swift API client maps backend predictions into the UI yet.
+- The iOS app displays the current live target day when location and backend requests succeed, otherwise it keeps the curated sample data visible and reports the error.
+- The backend response currently supplies one requested target day per call. The full seven-day calendar still requires additional API orchestration.
 - Solar event times come from Open-Meteo daily sunrise and sunset values. The current solar samples use a simplified linear elevation model and fixed sunrise/sunset azimuths, not a complete astronomical calculation.
 - The backend captures all requested weather and air-quality fields, but the current heuristic uses only a subset directly. Mid-level cloud, dew point, PM10, and ozone are available for future refinement.
 - Open-Meteo calls require network access. There is no local fixture or mock provider in the current implementation.

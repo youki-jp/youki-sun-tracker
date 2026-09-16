@@ -16,7 +16,12 @@
 		A10000000000000000000009 /* PrototypeModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000009 /* PrototypeModels.swift */; };
 		A1000000000000000000000A /* SkyBackgroundView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1000000000000000000000A /* SkyBackgroundView.swift */; };
 		A1000000000000000000000B /* Color+Hex.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1000000000000000000000B /* Color+Hex.swift */; };
+		A1000000000000000000000C /* SkyColorAPI.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1000000000000000000000C /* SkyColorAPI.swift */; };
+		A1000000000000000000000D /* LocationManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1000000000000000000000D /* LocationManager.swift */; };
+		A1000000000000000000000E /* ForecastMapper.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1000000000000000000000E /* ForecastMapper.swift */; };
+		A10000000000000000000010 /* YoukiAppUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000010 /* YoukiAppUITests.swift */; };
 		A10000000000000000000005 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000005 /* Assets.xcassets */; };
+		A10000000000000000000011 /* YoukiAppUITests.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = B10000000000000000000011 /* YoukiAppUITests.xctest */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -32,10 +37,22 @@
 		B10000000000000000000009 /* PrototypeModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PrototypeModels.swift; sourceTree = "<group>"; };
 		B1000000000000000000000A /* SkyBackgroundView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SkyBackgroundView.swift; sourceTree = "<group>"; };
 		B1000000000000000000000B /* Color+Hex.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Color+Hex.swift"; sourceTree = "<group>"; };
+		B1000000000000000000000C /* SkyColorAPI.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SkyColorAPI.swift; sourceTree = "<group>"; };
+		B1000000000000000000000D /* LocationManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocationManager.swift; sourceTree = "<group>"; };
+		B1000000000000000000000E /* ForecastMapper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ForecastMapper.swift; sourceTree = "<group>"; };
+		B10000000000000000000010 /* YoukiAppUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = YoukiAppUITests.swift; sourceTree = "<group>"; };
+		B10000000000000000000011 /* YoukiAppUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = YoukiAppUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
 		C10000000000000000000001 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		C10000000000000000000002 /* YoukiAppUITests Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -49,6 +66,7 @@
 			isa = PBXGroup;
 			children = (
 				D10000000000000000000002 /* YoukiApp */,
+				D10000000000000000000004 /* YoukiAppUITests */,
 				D10000000000000000000003 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -66,14 +84,26 @@
 				B10000000000000000000009 /* PrototypeModels.swift */,
 				B1000000000000000000000A /* SkyBackgroundView.swift */,
 				B1000000000000000000000B /* Color+Hex.swift */,
+				B1000000000000000000000C /* SkyColorAPI.swift */,
+				B1000000000000000000000D /* LocationManager.swift */,
+				B1000000000000000000000E /* ForecastMapper.swift */,
 				B10000000000000000000005 /* Assets.xcassets */,
 			);
+			sourceTree = "<group>";
+		};
+		D10000000000000000000004 /* YoukiAppUITests */ = {
+			isa = PBXGroup;
+			children = (
+				B10000000000000000000010 /* YoukiAppUITests.swift */,
+			);
+			path = YoukiAppUITests;
 			sourceTree = "<group>";
 		};
 		D10000000000000000000003 /* Products */ = {
 			isa = PBXGroup;
 			children = (
 				B10000000000000000000000 /* YoukiApp.app */,
+				B10000000000000000000011 /* YoukiAppUITests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -98,6 +128,23 @@
 			productReference = B10000000000000000000000 /* YoukiApp.app */;
 			productType = "com.apple.product-type.application";
 		};
+		E10000000000000000000002 /* YoukiAppUITests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = G10000000000000000000009 /* Build configuration list for PBXNativeTarget "YoukiAppUITests" */;
+			buildPhases = (
+				F10000000000000000000003 /* YoukiAppUITests Sources */,
+				C10000000000000000000002 /* YoukiAppUITests Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				J10000000000000000000001 /* PBXTargetDependency */,
+			);
+			name = YoukiAppUITests;
+			productName = YoukiAppUITests;
+			productReference = B10000000000000000000011 /* YoukiAppUITests.xctest */;
+			productType = "com.apple.product-type.bundle.ui-testing";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -110,6 +157,10 @@
 				TargetAttributes = {
 					E10000000000000000000001 = {
 						CreatedOnToolsVersion = 16.5;
+					};
+					E10000000000000000000002 = {
+						CreatedOnToolsVersion = 16.5;
+						TestTargetID = E10000000000000000000001;
 					};
 				};
 			};
@@ -128,9 +179,28 @@
 			projectRoot = "";
 			targets = (
 				E10000000000000000000001 /* YoukiApp */,
+				E10000000000000000000002 /* YoukiAppUITests */,
 			);
 		};
 /* End PBXProject section */
+
+/* Begin PBXContainerItemProxy section */
+		K10000000000000000000001 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = F00000000000000000000001 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = E10000000000000000000001;
+			remoteInfo = YoukiApp;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXTargetDependency section */
+		J10000000000000000000001 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = E10000000000000000000001 /* YoukiApp */;
+			targetProxy = K10000000000000000000001 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
 
 /* Begin PBXResourcesBuildPhase section */
 		F10000000000000000000002 /* Resources */ = {
@@ -157,6 +227,17 @@
 				A10000000000000000000009 /* PrototypeModels.swift in Sources */,
 				A1000000000000000000000A /* SkyBackgroundView.swift in Sources */,
 				A1000000000000000000000B /* Color+Hex.swift in Sources */,
+				A1000000000000000000000C /* SkyColorAPI.swift in Sources */,
+				A1000000000000000000000D /* LocationManager.swift in Sources */,
+				A1000000000000000000000E /* ForecastMapper.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		F10000000000000000000003 /* YoukiAppUITests Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				A10000000000000000000010 /* YoukiAppUITests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -258,6 +339,48 @@
 			};
 			name = Release;
 		};
+		G10000000000000000000007 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = jp.youki.YoukiAppUITests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = YoukiApp;
+			};
+			name = Debug;
+		};
+		G10000000000000000000008 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = jp.youki.YoukiAppUITests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = YoukiApp;
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -275,6 +398,15 @@
 			buildConfigurations = (
 				G10000000000000000000005 /* Debug */,
 				G10000000000000000000006 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		G10000000000000000000009 /* Build configuration list for PBXNativeTarget "YoukiAppUITests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				G10000000000000000000007 /* Debug */,
+				G10000000000000000000008 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

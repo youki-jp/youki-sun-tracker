@@ -21,6 +21,7 @@ export interface OpenMeteoWeatherResponse {
     relative_humidity_2m?: Array<number | null>;
     dew_point_2m?: Array<number | null>;
     precipitation?: Array<number | null>;
+    uv_index?: Array<number | null>;
   };
 }
 

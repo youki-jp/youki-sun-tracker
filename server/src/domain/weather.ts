@@ -14,4 +14,5 @@ export interface WeatherSample {
   relativeHumidityPct: number | null;
   dewPointCelsius: number | null;
   precipitationMillimeters: number | null;
+  uvIndex: number | null;
 }
