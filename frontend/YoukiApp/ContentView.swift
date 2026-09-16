@@ -140,7 +140,12 @@ struct ContentView: View {
 
     func skyHero(height: CGFloat, topInset: CGFloat) -> some View {
         ZStack(alignment: .top) {
-            SkyBackgroundView(mood: selectedDay.mood, isExpanded: isSkyExpanded)
+            TimelineView(.periodic(from: .now, by: 60)) { context in
+                SkyBackgroundView(
+                    appearance: serverViewModel.appearance(at: context.date),
+                    isExpanded: isSkyExpanded
+                )
+            }
 
             if let overlay = selectedMoment.overlayGradient {
                 LinearGradient(colors: overlay, startPoint: .top, endPoint: .bottom)

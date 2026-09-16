@@ -19,9 +19,11 @@
 		A1000000000000000000000C /* SkyColorAPI.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1000000000000000000000C /* SkyColorAPI.swift */; };
 		A1000000000000000000000D /* LocationManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1000000000000000000000D /* LocationManager.swift */; };
 		A1000000000000000000000E /* ForecastMapper.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1000000000000000000000E /* ForecastMapper.swift */; };
+		A1000000000000000000000F /* SkyDayTimelineAPI.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1000000000000000000000F /* SkyDayTimelineAPI.swift */; };
 		A10000000000000000000010 /* YoukiAppUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000010 /* YoukiAppUITests.swift */; };
 		A10000000000000000000005 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000005 /* Assets.xcassets */; };
 		A10000000000000000000011 /* YoukiAppUITests.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = B10000000000000000000011 /* YoukiAppUITests.xctest */; };
+		A10000000000000000000012 /* SkyGradient.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000012 /* SkyGradient.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -40,8 +42,10 @@
 		B1000000000000000000000C /* SkyColorAPI.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SkyColorAPI.swift; sourceTree = "<group>"; };
 		B1000000000000000000000D /* LocationManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocationManager.swift; sourceTree = "<group>"; };
 		B1000000000000000000000E /* ForecastMapper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ForecastMapper.swift; sourceTree = "<group>"; };
+		B1000000000000000000000F /* SkyDayTimelineAPI.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SkyDayTimelineAPI.swift; sourceTree = "<group>"; };
 		B10000000000000000000010 /* YoukiAppUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = YoukiAppUITests.swift; sourceTree = "<group>"; };
 		B10000000000000000000011 /* YoukiAppUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = YoukiAppUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		B10000000000000000000012 /* SkyGradient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SkyGradient.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -87,6 +91,8 @@
 				B1000000000000000000000C /* SkyColorAPI.swift */,
 				B1000000000000000000000D /* LocationManager.swift */,
 				B1000000000000000000000E /* ForecastMapper.swift */,
+				B1000000000000000000000F /* SkyDayTimelineAPI.swift */,
+				B10000000000000000000012 /* SkyGradient.swift */,
 				B10000000000000000000005 /* Assets.xcassets */,
 			);
 			sourceTree = "<group>";
@@ -230,6 +236,8 @@
 				A1000000000000000000000C /* SkyColorAPI.swift in Sources */,
 				A1000000000000000000000D /* LocationManager.swift in Sources */,
 				A1000000000000000000000E /* ForecastMapper.swift in Sources */,
+				A1000000000000000000000F /* SkyDayTimelineAPI.swift in Sources */,
+				A10000000000000000000012 /* SkyGradient.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

@@ -5,7 +5,8 @@ enum ForecastMapper {
     static func makeDay(
         from response: SkyColorAPIResponse,
         locationName: String = "Current location",
-        now: Date = Date()
+        now: Date = Date(),
+        generatedRamp: [Color]? = nil
     ) -> PrototypeDay? {
         let sunrise = response.predictions.first { $0.kind == .sunrise }
         let sunset = response.predictions.first { $0.kind == .sunset }
@@ -46,7 +47,7 @@ enum ForecastMapper {
             uv: decimal(liveConditions?.uvIndex),
             confidenceLabel: "\(primary.confidence)% confidence",
             analysisText: analysisText(for: primary),
-            colorRamp: colorRamp(for: primary, mood: mood),
+            colorRamp: generatedRamp ?? colorRamp(for: primary, mood: mood),
             isLocked: false
         )
     }

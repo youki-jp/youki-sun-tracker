@@ -1,6 +1,6 @@
 # Current Project State
 
-Updated: 2026-09-05
+Updated: 2026-09-16
 
 ## Product
 
@@ -11,7 +11,8 @@ The intended experience is:
 1. The iOS app provides a user's latitude, longitude, and altitude.
 2. The backend retrieves solar, weather, and atmospheric inputs.
 3. A SkyColorEngine estimates the quality and palette of an upcoming sunrise or sunset.
-4. The iOS app explains the result with a score, color ramp, timing, and reasons.
+4. A SkyGradientEngine synthesizes the continuous sky appearance from solar geometry and atmospheric inputs.
+5. The iOS app explains the result with a score, color ramp, timing, and reasons.
 
 ## What Works Today
 
@@ -42,6 +43,8 @@ Implemented behavior:
 - Requests may set `includeFeatures` to receive the per-timestep solar, weather, and air-quality samples alongside each prediction.
 - CORS is enabled on `/api/*` so browser clients on another origin can call the API.
 - `POST /api/v1/sky-day/timeline` returns a whole local day: real solar-elevation milestones, adaptively spaced solar samples, and the hourly weather and air-quality grids. Milestones may be null at polar latitudes where the sun never reaches a given elevation.
+- `SkyGradientService` interpolates the independent timeline grids into a normalized observation while preserving missing-field availability.
+- The deterministic `SkyGradientEngine` ports the reference Oklch model, emits nine stable stops, a five-color ramp, glow geometry, and fractional cloud bands. Its tests cover interpolation, missing data, safe ranges, atmospheric regimes, and repeatability.
 - Health, liveness, and readiness endpoints are available.
 - A Dockerfile exists for a Bun production container.
 
@@ -62,12 +65,14 @@ The frontend mirrors the Youki mock and can now load the current forecast from t
 
 The screen starts with `PrototypeDay.sampleDays` as a fallback, requests the user's current location, calls `POST /api/v1/sky-color/predictions`, and maps the live response into the existing presentation model. Live score, color palette, confidence, reasons, event times, cloud cover, and UV values are displayed when the request succeeds.
 
+The screen also requests `POST /api/v1/sky-day/timeline`, interpolates solar/weather/air-quality rows locally, and renders a generated nine-stop sky with fractional cloud and glow geometry. A 60-second `TimelineView` refreshes the current appearance without putting network work in a view body.
+
 ## What Is Not Connected Yet
 
-- The live iOS response currently represents one target day. The calendar does not yet load a full seven-day set from the backend.
 - Wake alarms, notifications, widgets, subscriptions, saved locations, and persistence are visual previews only.
-- Weather and air-quality inputs are hourly, and alignment picks the nearest sample without interpolating. A 90-minute scoring window therefore spans only about two distinct atmospheric readings, so consecutive timesteps usually carry identical cloud and aerosol values.
-- There are no automated backend or Swift unit tests in the repository.
+- The calendar still displays the one live target day; it does not yet load a full seven-day set from the timeline endpoint.
+- The iOS target has no standalone unit-test target for the Swift math; simulator app/UI-target builds remain the available verification seam.
+- Weather and air-quality inputs remain hourly upstream. The gradient path interpolates them, while the semantic scoring path intentionally retains nearest-sample behavior.
 - There is no CI workflow or production deployment configuration beyond the Dockerfile and DigitalOcean notes.
 
 ## Backend API
@@ -203,10 +208,8 @@ The rationale for each input is documented in [`docs/sky-color-prediction.md`](s
 
 1. Load a full seven-day forecast set without making an expensive one-request-per-event call from the client.
 2. Replace the remaining preview-only location, alarm, notification, widget, subscription, and persistence flows.
-3. Interpolate weather and air quality between the bracketing hourly samples instead of snapping to the nearest, so atmospheric values vary across the window.
-4. Add deterministic backend tests for request validation, feature alignment, and heuristic scoring.
-5. Add integration tests with fixture responses for Open-Meteo failures and incomplete data.
+3. Add integration tests with fixture responses for Open-Meteo failures and incomplete data.
 
 ## Important Decision
 
-The backend should remain the source of truth for solar geometry, external data aggregation, and sky-color scoring. The iOS app should own permissions, presentation, local UI state, and user interaction, not duplicate prediction logic.
+The backend remains the source of truth for solar geometry, external data aggregation, and semantic sky-color scoring. For the documented Option A gradient decision, the iOS app owns local grid interpolation, appearance generation, rendering, animation timing, fallback UI, and user interaction; it does not duplicate provider or solar-geometry logic.

@@ -106,7 +106,7 @@
     <div class="eyebrow">Youki technical explainer</div>
     <h1>How the live sky gradient works</h1>
     <p class="lead">The demo does not choose one canned mood such as vivid or pastel. It synthesizes a vertical sky from the sun's current elevation and the atmosphere around it, then emits a stable set of colors that SwiftUI can render and animate.</p>
-    <div class="notice"><strong>Repository status:</strong> the implementation currently lives in the unmerged <code>origin/feature/gradient-features</code> branch and the separate <a href="https://github.com/youki-jp/youki-prototype/blob/main/gradient.html">youki-prototype/gradient.html</a> reference. The Bun backend timeline work is present there; the Swift generator is still a handoff, not yet implemented in the iOS target.</div>
+    <div class="notice"><strong>Repository status:</strong> the implementation is consolidated on the integration line from <code>origin/feature/gradient-features</code>. Bun/Hono serves the day timeline, and the iOS target now owns local interpolation and the Swift Oklch generator. The <a href="https://github.com/youki-jp/youki-prototype/blob/main/gradient.html">youki-prototype/gradient.html</a> page remains the visual reference and calibration source.</div>
   </header>
 
   <section>
@@ -243,8 +243,8 @@ Content-Type: application/json
           <tr><td>Domain</td><td><code>server/src/domain/sky-gradient.ts</code></td><td>Input sample, stop, glow, cloud-band, and gradient-model interfaces.</td></tr>
           <tr><td>Infrastructure / pure engine</td><td><code>server/src/infrastructure/engines/sky-gradient-engine.ts</code></td><td>TypeScript port of the pure <code>generateSky()</code> math, including Oklab conversion and gamut mapping.</td></tr>
           <tr><td>Application</td><td><code>server/src/application/services/sky-gradient-service.ts</code></td><td>Fetch or receive a day timeline, interpolate the requested moment, and call the engine.</td></tr>
-          <tr><td>HTTP</td><td><code>server/src/http/routes/sky-day.ts</code></td><td>Validate location/date/time and expose the generated model.</td></tr>
-          <tr><td>Factory</td><td><code>server/src/infrastructure/factories/create-sky-day-timeline-service.ts</code></td><td>Wire existing Open-Meteo providers and the engine without putting provider logic in Hono.</td></tr>
+          <tr><td>HTTP</td><td><code>server/src/http/routes/sky-day.ts</code></td><td>Validate the timeline request and expose the normalized whole-day data used by the client renderer.</td></tr>
+          <tr><td>Factory</td><td><code>server/src/infrastructure/factories/create-sky-day-timeline-service.ts</code></td><td>Wire the Open-Meteo timeline providers and semantic summary without putting provider logic in Hono.</td></tr>
         </tbody>
       </table>
     </div>
@@ -344,9 +344,10 @@ function interpolateNumeric(rows, atIso, keys) {
 
 // Categorical values are carried from the nearer row:
 phase = t &lt; 0.5 ? before.phase : after.phase;</code></pre>
-    <div class="callout warn"><strong>Important existing limitation:</strong> the feature branch's prediction alignment still uses nearest samples for scoring. That is acceptable for the current heuristic score, but not for a smooth gradient. The timeline client or a new shared backend helper must interpolate atmospheric values between the bracketing hours.</div>
+    <div class="callout green"><strong>Current implementation:</strong> the semantic prediction alignment still uses nearest samples for scoring, while <code>SkyGradientService</code> and the Swift timeline sampler interpolate atmospheric values between the bracketing hours for the smooth gradient path.</div>
 
-    <h3 style="margin-top:24px">6.5 Dedicated Hono endpoint</h3>
+    <h3 style="margin-top:24px">6.5 Optional server-rendered endpoint</h3>
+    <p class="small muted">Option A is implemented, so the live app does not need this route: SwiftUI renders from the timeline locally. The following is the reserved Option B shape if another client later requires server-generated snapshots.</p>
     <pre><code>// server/src/http/routes/sky-day.ts
 router.post("/gradient", async (c) =&gt; {
   const request = parseGradientRequest(await readJsonBody(c.req.raw));

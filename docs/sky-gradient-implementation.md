@@ -1,6 +1,6 @@
 # Implementing the live sky gradient in SwiftUI
 
-Status: the backend side is on this branch and working. The iOS side is not started. This document is the handoff.
+Status: implemented as Option A. Bun/Hono serves the normalized whole-day timeline and SwiftUI performs local interpolation, generation, rendering, and fallback handling. The backend generator remains available as a deterministic, framework-neutral reference with tests; no server-generated snapshot endpoint is exposed.
 
 The goal is to replace the five hardcoded gradients in `SkyBackgroundView.swift` with a sky synthesised from real atmospheric conditions, evolving as the sun moves through the day.
 
@@ -67,20 +67,18 @@ One more, easy to miss: `Color(hex:)` in `Color+Hex.swift` parses 8-digit hex as
 | `SkyBackgroundView.swift` | Takes a generated model instead of `mood: SkyMood`. The `ZStack` structure stays: gradient, then cloud bands, then the radial glow, then the expanded scrim. |
 | `PrototypeModels.swift` | `SkyMood` becomes redundant once stops are generated. `PrototypeDay.colorRamp` is fed by the generator's `ramp`. |
 | `ForecastComponents.swift` | `predictedColorRamp` already renders a `LinearGradient` from `colorRamp`; point it at the generated ramp. The expanded card's ramp is labelled with first light / sunrise / blue-hour end, so it wants `dayRamp`, which is sampled across time rather than across the frame. |
-| `ServerViewModel.swift`, `AppConfig.swift` | The existing seam. It currently does a bare `GET` on the root URL and decodes nothing. |
-| new | `Codable` types for the timeline response, a `SkyGradientGenerator` holding the port, and a view model that maps a moment to a model. There are currently no `Codable` conformances anywhere in the target. |
+| `ServerViewModel.swift`, `AppConfig.swift` | The existing seam now loads the prediction and whole-day timeline requests, retaining the sample fallback. |
+| `SkyDayTimelineAPI.swift`, `SkyGradient.swift` | Codable timeline types/client, bracketing interpolation, the Oklch generator port, and the stable appearance model. |
 | `project.pbxproj` | **Every new Swift file must be added manually.** The project lists sources explicitly. |
 
 Keep the existing shape of the app: no network calls in a view body, and `PrototypeDay` replaced through a mapper rather than by scattering API calls through views. `.codex/standards.md` has the full rules.
 
 ## Suggested order
 
-1. `Codable` types for `/api/v1/sky-day/timeline`, with a fixture JSON checked in so previews and tests do not need the network.
-2. The grid join and interpolation, with its own tests. This is where the subtle bugs live, and it is testable without any UI.
-3. `generateSky()` ported verbatim, verified against the prototype: feed both the same conditions and compare hex output. They should agree exactly, since the maths is deterministic.
-4. `SkyBackgroundView` switched to `Gradient(stops:)` and fractional geometry, still fed by fixtures.
-5. Wire the live fetch behind the existing `AppConfig` seam.
-6. Only then consider `TimelineView` for continuous animation.
+1. Codable timeline types, bracketing interpolation, and the generator were ported into the target.
+2. `SkyBackgroundView` now consumes `Gradient(stops:)` and fractional cloud/glow geometry.
+3. `ServerViewModel` loads the timeline behind the existing `AppConfig` seam while preserving prediction and sample fallbacks.
+4. A 60-second `TimelineView` provides controlled current-time refresh; finer-grained animation can follow visual review.
 
 Step 3 is worth doing as a real check rather than by eye. If the Swift port and the HTML reference disagree on a hex value, one of them is wrong, and it is much cheaper to find that out at step 3 than after the UI is built on top of it.
 

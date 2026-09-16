@@ -13,7 +13,7 @@ The UI prototype and backend are intentionally at different integration stages. 
 
 For a fuller snapshot, read [`docs/current-state.md`](docs/current-state.md). For agent-specific rules, read [`AGENTS.md`](AGENTS.md) and the files in [`.codex/`](.codex/).
 
-The live sky gradient is specified in [`docs/sky-gradient-implementation.md`](docs/sky-gradient-implementation.md): the backend side is done, the SwiftUI side is not started.
+The live sky gradient is implemented as Option A from [`docs/sky-gradient-implementation-plan.md`](docs/sky-gradient-implementation-plan.md): Bun/Hono serves the normalized day timeline, while SwiftUI interpolates the local moment and renders the deterministic nine-stop appearance. The reference and known calibration gaps are documented in [`docs/sky-gradient-implementation.md`](docs/sky-gradient-implementation.md).
 
 ## Source Map
 
@@ -22,10 +22,12 @@ The live sky gradient is specified in [`docs/sky-gradient-implementation.md`](do
 - `server/src/app.ts`: Hono app composition, routes, and error handling.
 - `server/src/http/routes/`: HTTP parsing and health endpoints.
 - `server/src/application/services/predict-sky-color-service.ts`: orchestration use case.
+- `server/src/application/services/sky-gradient-service.ts`: normalized timeline-grid join and gradient orchestration.
 - `server/src/application/ports/`: provider and engine interfaces.
-- `server/src/domain/`: location, solar, weather, air-quality, and prediction types.
+- `server/src/domain/`: location, solar, weather, air-quality, prediction, and gradient types.
 - `server/src/infrastructure/open-meteo/`: Open-Meteo HTTP adapters.
 - `server/src/infrastructure/engines/heuristic-sky-color-engine.ts`: current scoring and palette heuristic.
+- `server/src/infrastructure/engines/sky-gradient-engine.ts`: deterministic Oklch sky-gradient engine.
 - `server/src/infrastructure/factories/create-predict-sky-color-service.ts`: production dependency wiring.
 
 ### iOS
@@ -39,6 +41,8 @@ The live sky gradient is specified in [`docs/sky-gradient-implementation.md`](do
 - `frontend/YoukiApp/SkyColorAPI.swift`: request/response DTOs and the backend HTTP client.
 - `frontend/YoukiApp/LocationManager.swift`: one-shot Core Location authorization and location retrieval.
 - `frontend/YoukiApp/ForecastMapper.swift`: maps backend predictions into the existing visual presentation model.
+- `frontend/YoukiApp/SkyDayTimelineAPI.swift`: timeline DTOs and Bun/Hono client.
+- `frontend/YoukiApp/SkyGradient.swift`: local timeline interpolation and reference generator port.
 - `frontend/YoukiApp/AppConfig.swift`: backend URL configuration seam.
 
 ## Backend Contract
@@ -109,7 +113,8 @@ DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer xcodebuild \
 - The iOS app displays the current live target day when location and backend requests succeed, otherwise it keeps the curated sample data visible and reports the error.
 - The backend response currently supplies one requested target day per call. The full seven-day calendar still requires additional API orchestration.
 - Solar event times come from Open-Meteo daily sunrise and sunset values. Elevation and azimuth within the window are computed with the NOAA solar position algorithm in `server/src/infrastructure/solar/solar-position.ts`.
-- Weather and air quality are hourly and aligned by nearest sample, so atmospheric values are effectively constant across the 15-minute solar timesteps. Clients that need smooth variation must interpolate.
+- The semantic sky-color scorer still uses nearest hourly weather and air-quality samples; the Swift sky-gradient path interpolates the bracketing rows locally.
+- The backend does not expose a generated gradient snapshot endpoint by design; Option A keeps rendering and minute-level animation on the client.
 - The backend captures all requested weather and air-quality fields, but the current heuristic uses only a subset directly. Mid-level cloud, dew point, PM10, and ozone are available for future refinement.
 - Open-Meteo calls require network access. There is no local fixture or mock provider in the current implementation.
 - The `server` package `build` script is still a placeholder. `bun build` is the practical bundling check until a formal build pipeline is introduced.
