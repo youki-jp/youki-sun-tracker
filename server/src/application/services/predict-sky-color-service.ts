@@ -46,7 +46,13 @@ export class PredictSkyColorService {
     return {
       location,
       generatedAtIso: new Date().toISOString(),
-      predictions,
+      // The engine maps contexts one-to-one, so indexes line up.
+      predictions: request.includeFeatures
+        ? predictions.map((prediction, index) => ({
+            ...prediction,
+            features: contexts[index]?.features ?? [],
+          }))
+        : predictions,
     };
   }
 

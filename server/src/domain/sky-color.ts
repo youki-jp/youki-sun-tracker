@@ -35,6 +35,12 @@ export interface SkyColorPredictionRequest {
   location: LocationInput;
   targetDateIso: IsoDateString | null;
   requestedEvents: SkyEventKind[];
+  /**
+   * Return the per-timestep atmospheric samples alongside each prediction.
+   * Clients that synthesise their own sky colour need these; the default stays
+   * off so the standard response shape is unchanged.
+   */
+  includeFeatures: boolean;
 }
 
 export interface SkyColorPrediction {
@@ -48,6 +54,8 @@ export interface SkyColorPrediction {
   reasons: string[];
   conditions: SkyColorConditions;
   window: SolarEventWindow;
+  /** Present only when the request set includeFeatures. */
+  features?: SkyColorFeatures[];
 }
 
 export interface SkyColorApiResponse {

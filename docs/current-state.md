@@ -38,6 +38,10 @@ Implemented behavior:
 - Air-quality fields are fetched from the Open-Meteo Air Quality API.
 - Solar, weather, and air-quality samples are aligned by nearest local timestamp.
 - The heuristic engine returns a score, confidence, label, estimated color, dominant colors, reasons, and event window.
+- Solar elevation and azimuth are computed with the NOAA solar position algorithm, including atmospheric refraction near the horizon. Open-Meteo still supplies the daily sunrise and sunset times that anchor each window.
+- Requests may set `includeFeatures` to receive the per-timestep solar, weather, and air-quality samples alongside each prediction.
+- CORS is enabled on `/api/*` so browser clients on another origin can call the API.
+- `POST /api/v1/sky-day/timeline` returns a whole local day: real solar-elevation milestones, adaptively spaced solar samples, and the hourly weather and air-quality grids. Milestones may be null at polar latitudes where the sun never reaches a given elevation.
 - Health, liveness, and readiness endpoints are available.
 - A Dockerfile exists for a Bun production container.
 
@@ -62,7 +66,7 @@ The screen starts with `PrototypeDay.sampleDays` as a fallback, requests the use
 
 - The live iOS response currently represents one target day. The calendar does not yet load a full seven-day set from the backend.
 - Wake alarms, notifications, widgets, subscriptions, saved locations, and persistence are visual previews only.
-- Solar elevation and azimuth are currently approximated in the Open-Meteo solar adapter.
+- Weather and air-quality inputs are hourly, and alignment picks the nearest sample without interpolating. A 90-minute scoring window therefore spans only about two distinct atmospheric readings, so consecutive timesteps usually carry identical cloud and aerosol values.
 - There are no automated backend or Swift unit tests in the repository.
 - There is no CI workflow or production deployment configuration beyond the Dockerfile and DigitalOcean notes.
 
@@ -80,7 +84,8 @@ Nested endpoint:
     "altitudeMeters": 40
   },
   "targetDateIso": "2026-09-05",
-  "requestedEvents": ["sunrise", "sunset"]
+  "requestedEvents": ["sunrise", "sunset"],
+  "includeFeatures": false
 }
 ```
 
@@ -135,6 +140,39 @@ The response is based on `server/src/domain/sky-color.ts`:
 
 The exact response should be treated as the TypeScript domain contract, not this abbreviated example.
 
+### Optional features payload
+
+When a request sets `includeFeatures: true`, each prediction gains a `features` array with one entry per 15-minute step of the scoring window (7 for sunrise, 8 for sunset):
+
+```json
+{
+  "solar": {
+    "timeIso": "2026-09-05T05:16:00",
+    "elevationDegrees": -0.54,
+    "azimuthDegrees": 80.82,
+    "twilightPhase": "civil"
+  },
+  "weather": {
+    "timeIso": "2026-09-05T05:00:00",
+    "cloudCover": { "totalPct": 72, "lowPct": 49, "midPct": 0, "highPct": 72 },
+    "visibilityMeters": 24140,
+    "relativeHumidityPct": 88,
+    "dewPointCelsius": 22.4,
+    "precipitationMillimeters": 0
+  },
+  "airQuality": {
+    "timeIso": "2026-09-05T05:00:00",
+    "aerosolOpticalDepth": 0.13,
+    "particulateMatter2_5UgM3": 8.4,
+    "particulateMatter10UgM3": 12.1,
+    "dustUgM3": 0.2,
+    "ozoneUgM3": 63
+  }
+}
+```
+
+The key is omitted entirely when not requested, so existing consumers are unaffected.
+
 ## Data Inputs
 
 Weather fields:
@@ -165,7 +203,7 @@ The rationale for each input is documented in [`docs/sky-color-prediction.md`](s
 
 1. Load a full seven-day forecast set without making an expensive one-request-per-event call from the client.
 2. Replace the remaining preview-only location, alarm, notification, widget, subscription, and persistence flows.
-3. Improve solar geometry with a timezone-safe astronomical calculation and real elevation/azimuth samples.
+3. Interpolate weather and air quality between the bracketing hourly samples instead of snapping to the nearest, so atmospheric values vary across the window.
 4. Add deterministic backend tests for request validation, feature alignment, and heuristic scoring.
 5. Add integration tests with fixture responses for Open-Meteo failures and incomplete data.
 
