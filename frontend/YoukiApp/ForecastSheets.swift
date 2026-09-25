@@ -48,7 +48,7 @@ extension ContentView {
                                 Circle()
                                     .fill(day.mood.displayColor)
                                     .frame(width: 9, height: 9)
-                                Text("\(day.qualityScore)")
+                                Text(serverViewModel.isScoreAvailable ? String(day.qualityScore) : "—")
                                     .font(.system(size: 14, weight: .bold, design: .rounded))
                                     .monospacedDigit()
                             }
@@ -75,9 +75,7 @@ extension ContentView {
                 .accessibilityIdentifier("calendarInfoButton")
 
                 if showCalendarInfo {
-                    Text(serverViewModel.isLive
-                         ? "This forecast uses your current location and live weather and air-quality data from the backend."
-                         : "Live location data is unavailable, so the prototype sample forecast is being shown.")
+                    Text(serverViewModel.statusText + ". Only the requested day is loaded; other days in sample mode are previews.")
                         .font(.system(size: 11, weight: .medium, design: .rounded))
                         .foregroundStyle(inkColor.opacity(0.55))
                         .lineSpacing(3)
@@ -227,99 +225,107 @@ extension ContentView {
         }
     }
 
+    var manualCoordinates: ForecastCoordinates? {
+        guard let latitude = Double(manualLatitude.trimmingCharacters(in: .whitespaces)),
+              let longitude = Double(manualLongitude.trimmingCharacters(in: .whitespaces)) else { return nil }
+        let altitudeText = manualAltitude.trimmingCharacters(in: .whitespaces)
+        if !altitudeText.isEmpty && Double(altitudeText) == nil { return nil }
+        return ForecastCoordinates(latitude: latitude, longitude: longitude,
+                                   altitudeMeters: Double(altitudeText))
+    }
+
     var locationsSheet: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            Text("Locations")
-                .font(.system(size: 18, weight: .bold, design: .rounded))
-                .padding(.bottom, 14)
+        ScrollView {
+            VStack(alignment: .leading, spacing: 18) {
+                Text("Locations")
+                    .font(.system(size: 22, weight: .bold, design: .rounded))
 
-            HStack(spacing: 10) {
-                Image(systemName: "magnifyingglass")
-                Text("Search city")
-            }
-            .font(.system(size: 13, weight: .medium, design: .rounded))
-            .foregroundStyle(inkColor.opacity(0.45))
-            .padding(.horizontal, 14)
-            .padding(.vertical, 12)
-            .overlay {
-                RoundedRectangle(cornerRadius: 14, style: .continuous)
-                    .stroke(inkColor.opacity(0.08), lineWidth: 1)
-            }
-
-            Button {
-                activeSheet = nil
-                Task {
-                    await serverViewModel.loadForecast()
-                }
-            } label: {
-                HStack(spacing: 10) {
-                    Image(systemName: "location.circle.fill")
-                    Text("Use my location")
-                        .font(.system(size: 14, weight: .semibold, design: .rounded))
-                }
-                .foregroundStyle(accentColor)
-                .padding(.vertical, 14)
-            }
-            .buttonStyle(.plain)
-            .accessibilityIdentifier("useLocationButton")
-            .overlay(alignment: .bottom) {
-                Divider()
-            }
-
-            ForEach(PrototypeLocation.sampleLocations) { location in
                 Button {
                     activeSheet = nil
+                    Task { await serverViewModel.loadDeviceLocation() }
                 } label: {
-                    HStack {
-                        HStack(spacing: 10) {
-                            Image(systemName: "circle.grid.2x2")
-                                .foregroundStyle(inkColor.opacity(0.4))
-                            Text(location.name)
-                                .font(.system(size: 14, weight: .semibold, design: .rounded))
-                        }
-                        Spacer()
-                        if location.isSelected {
-                            Image(systemName: "checkmark")
-                                .font(.system(size: 14, weight: .bold))
-                                .foregroundStyle(accentColor)
-                        }
-                    }
-                    .padding(.vertical, 14)
+                    Label("Use my location", systemImage: "location.circle.fill")
+                        .font(.system(size: 15, weight: .semibold, design: .rounded))
+                        .foregroundStyle(accentColor)
+                        .padding(.vertical, 10)
                 }
-                .buttonStyle(.plain)
-                .accessibilityIdentifier("savedLocation.\(location.id)")
-                .overlay(alignment: .bottom) {
-                    Divider()
-                }
-            }
+                .accessibilityIdentifier("useLocationButton")
 
-            Button {
-                activeSheet = .paywall
-            } label: {
-                HStack {
-                    HStack(spacing: 10) {
-                        Image(systemName: "plus")
-                        Text("Add location")
+                Divider()
+                Text("Enter coordinates")
+                    .font(.system(size: 16, weight: .semibold, design: .rounded))
+                coordinateField("Latitude", placeholder: "-90 to 90", text: $manualLatitude, id: "latitudeField")
+                coordinateField("Longitude", placeholder: "-180 to 180", text: $manualLongitude, id: "longitudeField")
+                coordinateField("Altitude in meters (optional)", placeholder: "-500 to 9000", text: $manualAltitude, id: "altitudeField")
+
+                if manualCoordinates == nil && (!manualLatitude.isEmpty || !manualLongitude.isEmpty || !manualAltitude.isEmpty) {
+                    Text("Enter valid latitude and longitude. Altitude, if supplied, must be between -500 and 9000 meters.")
+                        .font(.system(size: 12, design: .rounded))
+                        .foregroundStyle(accentColor)
+                        .accessibilityIdentifier("coordinateValidation")
+                }
+
+                Button {
+                    guard let coordinates = manualCoordinates else { return }
+                    activeSheet = nil
+                    Task { await serverViewModel.load(coordinates) }
+                } label: {
+                    Text("Show sky")
+                        .font(.system(size: 15, weight: .bold, design: .rounded))
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 14)
+                        .background(accentColor, in: RoundedRectangle(cornerRadius: 14))
+                        .foregroundStyle(panelColor)
+                }
+                .disabled(manualCoordinates == nil)
+                .opacity(manualCoordinates == nil ? 0.45 : 1)
+                .accessibilityIdentifier("manualLocationButton")
+
+                Text(serverViewModel.statusText)
+                    .font(.system(size: 12, weight: .semibold, design: .rounded))
+                if let error = serverViewModel.errorMessage {
+                    Text(error)
+                        .font(.system(size: 12, design: .rounded))
+                        .foregroundStyle(inkColor.opacity(0.65))
+                    Button("Retry forecast") {
+                        activeSheet = nil
+                        Task { await serverViewModel.loadForecast() }
                     }
-                    .font(.system(size: 14, weight: .semibold, design: .rounded))
+                    .foregroundStyle(accentColor)
+                }
+                Text("Coordinates are used for this forecast and are not saved.")
+                    .font(.system(size: 11, design: .rounded))
                     .foregroundStyle(inkColor.opacity(0.55))
-
-                    Spacer()
-
-                    Image(systemName: "lock")
-                        .font(.system(size: 14, weight: .semibold))
-                        .foregroundStyle(inkColor.opacity(0.45))
-                }
-                .padding(.vertical, 16)
             }
-            .buttonStyle(.plain)
-            .accessibilityIdentifier("addLocationButton")
-
-            Spacer()
+            .padding(24)
         }
-        .padding(.horizontal, 24)
-        .padding(.top, 12)
+        .foregroundStyle(inkColor)
         .background(panelColor)
+        .onAppear {
+            if manualLatitude.isEmpty, let coordinates = serverViewModel.coordinates {
+                manualLatitude = String(coordinates.latitude)
+                manualLongitude = String(coordinates.longitude)
+                manualAltitude = coordinates.altitudeMeters.map { String($0) } ?? ""
+            }
+        }
+    }
+
+    func coordinateField(_ title: String, placeholder: String, text: Binding<String>, id: String) -> some View {
+        VStack(alignment: .leading, spacing: 7) {
+            Text(title)
+                .font(.system(size: 12, weight: .semibold, design: .rounded))
+                .foregroundStyle(inkColor.opacity(0.65))
+            TextField(placeholder, text: text)
+                .keyboardType(.numbersAndPunctuation)
+                .focused($coordinateFocus, equals: id)
+                .submitLabel(.done)
+                .onSubmit { coordinateFocus = nil }
+                .textInputAutocapitalization(.never)
+                .autocorrectionDisabled()
+                .padding(12)
+                .background(cardColor, in: RoundedRectangle(cornerRadius: 10))
+                .accessibilityIdentifier(id)
+        }
     }
 
     var paywallSheet: some View {

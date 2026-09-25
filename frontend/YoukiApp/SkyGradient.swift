@@ -1,5 +1,50 @@
 import Foundation
 
+enum SkyMoment: String, CaseIterable, Identifiable {
+    case now, firstLight, goldenHour, sunrise, daylight, goldenHourPM, sunset
+    var id: String { rawValue }
+    var label: String {
+        switch self {
+        case .now: return "Now"
+        case .firstLight: return "First light"
+        case .goldenHour: return "Golden hour"
+        case .sunrise: return "Sunrise"
+        case .daylight: return "Daylight"
+        case .goldenHourPM: return "Golden PM"
+        case .sunset: return "Sunset"
+        }
+    }
+    var isEvening: Bool { self == .goldenHourPM || self == .sunset }
+    func localIso(in milestones: SkyDayTimelineResponse.Milestones) -> String? {
+        switch self {
+        case .now: return nil
+        case .firstLight: return milestones.civilDawnIso
+        case .goldenHour: return milestones.goldenHourStartIso
+        case .sunrise: return milestones.sunriseIso
+        case .daylight: return milestones.solarNoonIso
+        case .goldenHourPM: return milestones.goldenHourPmStartIso
+        case .sunset: return milestones.sunsetIso
+        }
+    }
+}
+
+struct ForecastCoordinates: Equatable {
+    let latitude: Double
+    let longitude: Double
+    let altitudeMeters: Double?
+
+    init?(latitude: Double, longitude: Double, altitudeMeters: Double? = nil) {
+        guard latitude.isFinite, longitude.isFinite,
+              (-90...90).contains(latitude), (-180...180).contains(longitude),
+              altitudeMeters.map({ $0.isFinite && (-500...9000).contains($0) }) ?? true else { return nil }
+        self.latitude = latitude
+        self.longitude = longitude
+        self.altitudeMeters = altitudeMeters
+    }
+
+    var label: String { String(format: "%.4f, %.4f", latitude, longitude) }
+}
+
 struct SkyGradientInput: Equatable {
     let elevationDegrees: Double
     let azimuthDegrees: Double
@@ -295,7 +340,7 @@ enum SkyGradientGenerator {
             return 1
         }
 
-        let span = max(high - low, 1)
+        let span = high == low ? 1 : high - low
         let distance = value < low ? low - value : value - high
         return clamp01(1 - distance / span)
     }
@@ -314,25 +359,42 @@ struct SkyTimelineSampler {
         self.timeline = timeline
     }
 
+    var hasAtmosphericFallback: Bool {
+        timeline.weather.isEmpty || timeline.airQuality.isEmpty ||
+        timeline.weather.contains { row in
+            sampleMinutes(row.timeIso) == nil ||
+            [row.cloudCover.totalPct, row.cloudCover.lowPct, row.cloudCover.midPct,
+             row.cloudCover.highPct, row.visibilityMeters, row.relativeHumidityPct,
+             row.precipitationMillimeters].contains { $0 == nil || $0?.isFinite == false }
+        } ||
+        timeline.airQuality.contains { row in
+            sampleMinutes(row.timeIso) == nil ||
+            [row.aerosolOpticalDepth, row.dustUgM3, row.particulateMatter2_5UgM3]
+                .contains { $0 == nil || $0?.isFinite == false }
+        }
+    }
+
     func appearance(at date: Date) -> SkyAppearance? {
         let formatter = DateFormatter()
         formatter.locale = Locale(identifier: "en_US_POSIX")
         formatter.calendar = Calendar(identifier: .gregorian)
-        formatter.timeZone = TimeZone(identifier: timeline.location.timezoneId) ?? .current
+        guard let timezone = TimeZone(identifier: timeline.location.timezoneId) else { return nil }
+        formatter.timeZone = timezone
         formatter.dateFormat = "yyyy-MM-dd'T'HH:mm:ss"
 
         return appearance(atLocalIso: formatter.string(from: date))
     }
 
     func appearance(atLocalIso localIso: String) -> SkyAppearance? {
-        guard let minutes = localMinutes(from: localIso), !timeline.solar.isEmpty else {
+        guard localIso.hasPrefix(timeline.targetDateIso + "T"),
+              let minutes = Self.localMinutes(from: localIso), !timeline.solar.isEmpty else {
             return nil
         }
 
         guard let solarBracket = interpolate(
             timeline.solar,
             at: minutes,
-            time: { localMinutes(from: $0.timeIso) ?? 0 }
+            time: { sampleMinutes($0.timeIso) }
         ) else {
             return nil
         }
@@ -342,12 +404,12 @@ struct SkyTimelineSampler {
         let weatherBracket = interpolate(
             timeline.weather,
             at: minutes,
-            time: { localMinutes(from: $0.timeIso) ?? 0 }
+            time: { sampleMinutes($0.timeIso) }
         )
         let airBracket = interpolate(
             timeline.airQuality,
             at: minutes,
-            time: { localMinutes(from: $0.timeIso) ?? 0 }
+            time: { sampleMinutes($0.timeIso) }
         )
         let weather = weatherBracket.map(interpolate)
         let air = airBracket.map(interpolate)
@@ -370,33 +432,42 @@ struct SkyTimelineSampler {
         return SkyGradientGenerator.generate(input)
     }
 
-    private func localMinutes(from value: String) -> Double? {
-        guard value.count >= 16 else {
-            return nil
-        }
-
-        let hourStart = value.index(value.startIndex, offsetBy: 11)
-        let minuteStart = value.index(hourStart, offsetBy: 3)
-        guard let hour = Double(value[hourStart..<minuteStart]),
-              let minute = Double(value[minuteStart..<value.index(minuteStart, offsetBy: 2)]) else {
-            return nil
-        }
-
+    // The HTML preview intentionally samples at minute resolution, even for HH:mm:ss.
+    static func localMinutes(from value: String) -> Double? {
+        guard value.range(of: #"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2})?$"#,
+                          options: .regularExpression) != nil else { return nil }
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.calendar = Calendar(identifier: .gregorian)
+        formatter.timeZone = TimeZone(secondsFromGMT: 0)
+        formatter.dateFormat = value.count == 19 ? "yyyy-MM-dd'T'HH:mm:ss" : "yyyy-MM-dd'T'HH:mm"
+        formatter.isLenient = false
+        guard let date = formatter.date(from: value), formatter.string(from: date) == value else { return nil }
+        let parts = value.split(separator: "T")[1].split(separator: ":")
+        guard let hour = Double(parts[0]), let minute = Double(parts[1]) else { return nil }
         return hour * 60 + minute
     }
 
+    private func sampleMinutes(_ iso: String) -> Double? {
+        guard iso.hasPrefix(timeline.targetDateIso + "T") else { return nil }
+        return Self.localMinutes(from: iso)
+    }
+
     private func interpolate<T>(
-        _ rows: [T],
+        _ inputRows: [T],
         at minutes: Double,
-        time: (T) -> Double
+        time: (T) -> Double?
     ) -> Bracket<T>? {
+        let timedRows = inputRows.compactMap { row in time(row).map { (row, $0) } }
+            .sorted { $0.1 < $1.1 }
+        let rows = timedRows.map(\.0)
         guard !rows.isEmpty else {
             return nil
         }
-        if rows.count == 1 || minutes <= time(rows[0]) {
+        if rows.count == 1 || minutes <= timedRows[0].1 {
             return Bracket(before: rows[0], after: rows[0], fraction: 0)
         }
-        if minutes >= time(rows[rows.count - 1]) {
+        if minutes >= timedRows[rows.count - 1].1 {
             let last = rows[rows.count - 1]
             return Bracket(before: last, after: last, fraction: 0)
         }
@@ -404,8 +475,8 @@ struct SkyTimelineSampler {
         for index in 0..<(rows.count - 1) {
             let before = rows[index]
             let after = rows[index + 1]
-            let beforeMinutes = time(before)
-            let afterMinutes = time(after)
+            let beforeMinutes = timedRows[index].1
+            let afterMinutes = timedRows[index + 1].1
             guard minutes >= beforeMinutes && minutes <= afterMinutes else {
                 continue
             }
@@ -444,8 +515,8 @@ private extension SkyTimelineSampler {
             cloudLow: interpolate(bracket.before.cloudCover.lowPct, bracket.after.cloudCover.lowPct, bracket.fraction),
             cloudMid: interpolate(bracket.before.cloudCover.midPct, bracket.after.cloudCover.midPct, bracket.fraction),
             cloudHigh: interpolate(bracket.before.cloudCover.highPct, bracket.after.cloudCover.highPct, bracket.fraction),
-            visibility: interpolate(bracket.before.visibilityMeters, bracket.after.visibilityMeters, bracket.fraction),
-            humidity: interpolate(bracket.before.relativeHumidityPct, bracket.after.relativeHumidityPct, bracket.fraction),
+            visibility: interpolate(bracket.before.visibilityMeters, bracket.after.visibilityMeters, bracket.fraction, fallback: 24_000),
+            humidity: interpolate(bracket.before.relativeHumidityPct, bracket.after.relativeHumidityPct, bracket.fraction, fallback: 60),
             precipitation: interpolate(bracket.before.precipitationMillimeters, bracket.after.precipitationMillimeters, bracket.fraction)
         )
     }
@@ -454,21 +525,16 @@ private extension SkyTimelineSampler {
         _ bracket: Bracket<SkyDayTimelineResponse.AirQualitySample>
     ) -> (aerosolOpticalDepth: Double?, dust: Double?, pm25: Double?) {
         (
-            aerosolOpticalDepth: interpolate(bracket.before.aerosolOpticalDepth, bracket.after.aerosolOpticalDepth, bracket.fraction),
+            aerosolOpticalDepth: interpolate(bracket.before.aerosolOpticalDepth, bracket.after.aerosolOpticalDepth, bracket.fraction, fallback: 0.08),
             dust: interpolate(bracket.before.dustUgM3, bracket.after.dustUgM3, bracket.fraction),
             pm25: interpolate(bracket.before.particulateMatter2_5UgM3, bracket.after.particulateMatter2_5UgM3, bracket.fraction)
         )
     }
 
-    func interpolate(_ before: Double?, _ after: Double?, _ fraction: Double) -> Double? {
-        switch (before, after) {
-        case let (.some(before), .some(after)):
-            return lerp(before, after, fraction)
-        case let (.some(value), .none), let (.none, .some(value)):
-            return value
-        case (.none, .none):
-            return nil
-        }
+    func interpolate(_ before: Double?, _ after: Double?, _ fraction: Double, fallback: Double = 0) -> Double {
+        let a = before.flatMap { $0.isFinite ? $0 : nil } ?? fallback
+        let b = after.flatMap { $0.isFinite ? $0 : nil } ?? fallback
+        return lerp(a, b, fraction)
     }
 
     func lerp(_ before: Double, _ after: Double, _ fraction: Double) -> Double {
