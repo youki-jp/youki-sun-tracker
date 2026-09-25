@@ -35,7 +35,7 @@ struct SkyDayTimelineResponse: Decodable {
         let goldenHourStartIso: String?
         let sunriseIso: String?
         let goldenHourEndIso: String?
-        let solarNoonIso: String
+        let solarNoonIso: String?
         let goldenHourPmStartIso: String?
         let sunsetIso: String?
         let goldenHourPmEndIso: String?

@@ -23,6 +23,7 @@ enum LocationProviderError: LocalizedError {
 final class LocationManager: NSObject, ObservableObject, @preconcurrency CLLocationManagerDelegate {
     private let manager = CLLocationManager()
     private var locationContinuation: CheckedContinuation<CLLocation, Error>?
+    private var timeoutTask: Task<Void, Never>?
 
     override init() {
         super.init()
@@ -32,12 +33,17 @@ final class LocationManager: NSObject, ObservableObject, @preconcurrency CLLocat
     }
 
     func currentLocation() async throws -> CLLocation {
-        guard locationContinuation == nil else {
-            throw LocationProviderError.requestInProgress
+        if locationContinuation != nil {
+            finish(with: .failure(LocationProviderError.unavailable))
         }
 
         return try await withCheckedThrowingContinuation { continuation in
             locationContinuation = continuation
+            timeoutTask = Task { [weak self] in
+                do { try await Task.sleep(for: .seconds(20)) }
+                catch { return }
+                self?.finish(with: .failure(LocationProviderError.unavailable))
+            }
 
             switch manager.authorizationStatus {
             case .notDetermined:
@@ -90,6 +96,8 @@ final class LocationManager: NSObject, ObservableObject, @preconcurrency CLLocat
         }
 
         locationContinuation = nil
+        timeoutTask?.cancel()
+        timeoutTask = nil
         continuation.resume(with: result)
     }
 }

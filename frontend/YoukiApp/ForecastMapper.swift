@@ -5,50 +5,77 @@ enum ForecastMapper {
     static func makeDay(
         from response: SkyColorAPIResponse,
         locationName: String = "Current location",
-        now: Date = Date(),
-        generatedRamp: [Color]? = nil
+        generatedRamp: [Color]? = nil,
+        moment: SkyMoment = .sunrise,
+        timeline: SkyDayTimelineResponse? = nil,
+        currentDate: Date = Date()
     ) -> PrototypeDay? {
         let sunrise = response.predictions.first { $0.kind == .sunrise }
         let sunset = response.predictions.first { $0.kind == .sunset }
-        guard let primary = sunrise ?? sunset else {
+        let timezone = timeline?.location.timezoneId ?? response.location.timezoneId
+        let localHour = Int(formatter(timezone: timezone, format: "H").string(from: currentDate))
+        let useSunset = moment == .now ? (localHour.map { $0 >= 12 } ?? false) : moment.isEvening
+        guard let primary = useSunset ? sunset : sunrise else {
             return nil
         }
 
-        let timezone = response.location.timezoneId
         let primaryDate = date(from: primary.window.eventTimeIso, timezone: timezone)
         let primaryKindLabel = primary.kind == .sunrise ? "sunrise" : "sunset"
         let mood = mood(for: primary.label)
-        let sunriseWindow = sunrise?.window
-        let sunsetWindow = sunset?.window
-        let liveConditions = (sunrise ?? sunset)?.conditions
+        let liveConditions = primary.conditions
 
         return PrototypeDay(
             id: "today",
             weekday: weekday(for: primaryDate, timezone: timezone),
             dateLabel: dateLabel(for: primaryDate, timezone: timezone),
             qualityScore: primary.score,
-            summaryLabel: "\(primary.estimatedColorName.capitalized) \(primaryKindLabel) glow",
-            heroTime: displayTime(primary.window.eventTimeIso, timezone: timezone),
-            heroSubtitle: eventSubtitle(
-                kind: primaryKindLabel,
-                eventDate: primaryDate,
-                now: now
-            ),
+            summaryLabel: moment == .now ? "\(primaryKindLabel.capitalized) forecast score" : "\(primary.estimatedColorName.capitalized) \(primaryKindLabel) glow",
+            heroTime: moment == .now ? "Now" : (timeline.map { milestoneTime(moment.localIso(in: $0.milestones)) } ?? displayTime(primary.window.eventTimeIso, timezone: timezone)),
+            heroSubtitle: moment == .now ? "Current local time · \(displayClock(currentDate, timezone: timezone))" : (timeline.map { "\(moment.label) · \($0.location.timezoneId)" } ?? "\(primaryKindLabel.capitalized) forecast"),
+            nowTime: displayClock(currentDate, timezone: timezone),
             location: locationName,
             mood: mood,
-            firstLight: displayTime(sunriseWindow?.twilight.civilStartsAtIso, timezone: timezone),
-            golden: displayTime(sunriseWindow?.scoringWindow.startsAtIso, timezone: timezone),
-            sunrise: displayTime(sunriseWindow?.eventTimeIso, timezone: timezone),
-            daylight: displayTime(sunriseWindow?.twilight.civilEndsAtIso, timezone: timezone),
-            goldenPM: displayTime(sunsetWindow?.scoringWindow.startsAtIso, timezone: timezone),
-            sunset: displayTime(sunsetWindow?.eventTimeIso, timezone: timezone),
-            blueEnd: displayTime(sunriseWindow?.twilight.civilEndsAtIso, timezone: timezone),
+            firstLight: milestoneTime(timeline?.milestones.civilDawnIso),
+            golden: milestoneTime(timeline?.milestones.goldenHourStartIso),
+            sunrise: milestoneTime(timeline?.milestones.sunriseIso),
+            daylight: milestoneTime(timeline?.milestones.solarNoonIso),
+            goldenPM: milestoneTime(timeline?.milestones.goldenHourPmStartIso),
+            sunset: milestoneTime(timeline?.milestones.sunsetIso),
+            blueEnd: milestoneTime(timeline?.milestones.civilDuskIso),
             cloud: percentage(liveConditions?.cloudCoverPct, suffix: "% cover"),
             uv: decimal(liveConditions?.uvIndex),
             confidenceLabel: "\(primary.confidence)% confidence",
-            analysisText: analysisText(for: primary),
+            analysisText: moment == .now ? "\(primaryKindLabel.capitalized) event forecast: \(analysisText(for: primary))" : analysisText(for: primary),
             colorRamp: generatedRamp ?? colorRamp(for: primary, mood: mood),
             isLocked: false
+        )
+    }
+
+    static func milestoneTime(_ iso: String?) -> String {
+        guard let iso, let minutes = SkyTimelineSampler.localMinutes(from: iso) else { return "—" }
+        return String(format: "%02d:%02d", Int(minutes) / 60, Int(minutes) % 60)
+    }
+
+    static func timelineDay(_ timeline: SkyDayTimelineResponse, locationName: String,
+                            moment: SkyMoment, appearance: SkyAppearance, currentDate: Date = Date()) -> PrototypeDay {
+        let milestones = timeline.milestones
+        return PrototypeDay(
+            id: "today", weekday: "Today", dateLabel: timeline.targetDateIso,
+            qualityScore: 0, summaryLabel: moment == .now ? "Event score unavailable" : "Score unavailable",
+            heroTime: moment == .now ? "Now" : milestoneTime(moment.localIso(in: milestones)),
+            heroSubtitle: moment == .now ? "Current local time · \(displayClock(currentDate, timezone: timeline.location.timezoneId))" : "\(moment.label) · \(timeline.location.timezoneId)",
+            nowTime: displayClock(currentDate, timezone: timeline.location.timezoneId),
+            location: locationName, mood: .clear,
+            firstLight: milestoneTime(milestones.civilDawnIso),
+            golden: milestoneTime(milestones.goldenHourStartIso),
+            sunrise: milestoneTime(milestones.sunriseIso),
+            daylight: milestoneTime(milestones.solarNoonIso),
+            goldenPM: milestoneTime(milestones.goldenHourPmStartIso),
+            sunset: milestoneTime(milestones.sunsetIso),
+            blueEnd: milestoneTime(milestones.civilDuskIso),
+            cloud: "—", uv: "—", confidenceLabel: "Score unavailable",
+            analysisText: "The sky uses the live solar and atmospheric timeline. Forecast score and analysis are unavailable for this event.",
+            colorRamp: appearance.ramp.map { Color(hex: $0) }, isLocked: false
         )
     }
 
@@ -95,23 +122,6 @@ enum ForecastMapper {
         }
     }
 
-    private static func eventSubtitle(kind: String, eventDate: Date?, now: Date) -> String {
-        guard let eventDate else {
-            return "Live forecast from weather data"
-        }
-
-        let minutes = Int((eventDate.timeIntervalSince(now) / 60).rounded())
-        if abs(minutes) <= 1 {
-            return "\(kind.capitalized) is happening now"
-        }
-
-        if minutes > 0 {
-            return "\(kind.capitalized) in \(minutes) min"
-        }
-
-        return "\(kind.capitalized) was \(abs(minutes)) min ago"
-    }
-
     private static func displayTime(_ iso: String?, timezone: String) -> String {
         guard let iso, let date = date(from: iso, timezone: timezone) else {
             return "—"
@@ -119,6 +129,10 @@ enum ForecastMapper {
 
         let formatter = formatter(timezone: timezone, format: "H:mm")
         return formatter.string(from: date)
+    }
+
+    private static func displayClock(_ date: Date, timezone: String) -> String {
+        formatter(timezone: timezone, format: "HH:mm").string(from: date)
     }
 
     private static func date(from iso: String, timezone: String) -> Date? {

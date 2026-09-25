@@ -50,36 +50,10 @@ enum SubscriptionPlan {
     case monthly
 }
 
-enum SkyMoment: String, CaseIterable, Identifiable {
-    case firstLight
-    case goldenHour
-    case sunrise
-    case daylight
-    case goldenHourPM
-    case sunset
-
-    var id: String { rawValue }
-
-    var label: String {
-        switch self {
-        case .firstLight:
-            return "First light"
-        case .goldenHour:
-            return "Golden hour"
-        case .sunrise:
-            return "Sunrise"
-        case .daylight:
-            return "Daylight"
-        case .goldenHourPM:
-            return "Golden PM"
-        case .sunset:
-            return "Sunset"
-        }
-    }
-
+extension SkyMoment {
     var dotColor: Color {
         switch self {
-        case .firstLight, .daylight:
+        case .now, .firstLight, .daylight:
             return Color.white.opacity(0.75)
         case .goldenHour, .goldenHourPM:
             return Color(red: 224 / 255, green: 145 / 255, blue: 58 / 255)
@@ -89,25 +63,7 @@ enum SkyMoment: String, CaseIterable, Identifiable {
             return Color.black.opacity(0.28)
         }
     }
-
-    var overlayGradient: [Color]? {
-        switch self {
-        case .firstLight:
-            return [Color.indigo.opacity(0.18), Color.orange.opacity(0.2)]
-        case .goldenHour:
-            return [Color.pink.opacity(0.14), Color.orange.opacity(0.24)]
-        case .sunrise:
-            return [Color.orange.opacity(0.15), Color.yellow.opacity(0.18)]
-        case .daylight:
-            return [Color.clear]
-        case .goldenHourPM:
-            return [Color.orange.opacity(0.16), Color.red.opacity(0.16)]
-        case .sunset:
-            return [Color.red.opacity(0.18), Color.purple.opacity(0.16)]
-        }
-    }
 }
-
 enum SkyMood: String {
     case vivid
     case clear
@@ -192,6 +148,7 @@ struct PrototypeDay: Identifiable {
     let summaryLabel: String
     let heroTime: String
     let heroSubtitle: String
+    var nowTime: String = "—"
     let location: String
     let mood: SkyMood
     let firstLight: String
@@ -210,6 +167,8 @@ struct PrototypeDay: Identifiable {
 
     func time(for moment: SkyMoment) -> String {
         switch moment {
+        case .now:
+            return nowTime
         case .firstLight:
             return firstLight
         case .goldenHour:

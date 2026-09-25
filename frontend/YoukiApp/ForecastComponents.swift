@@ -14,7 +14,8 @@ extension ContentView {
 
     var scoreHeaderPrimary: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text("\(selectedDay.qualityScore)")
+            Text(scoreText)
+                .accessibilityIdentifier("forecastScore")
                 .font(.system(size: 72, weight: .light, design: .rounded))
                 .tracking(-2.5)
                 .lineLimit(1)
@@ -29,6 +30,7 @@ extension ContentView {
     func scoreHeaderSecondary(alignment: HorizontalAlignment) -> some View {
         VStack(alignment: alignment, spacing: 8) {
             Text(selectedDay.heroTime)
+                .accessibilityIdentifier("selectedEventTime")
                 .font(.system(size: 24, weight: .medium, design: .rounded))
 
             Text(selectedDay.heroSubtitle)
@@ -73,12 +75,15 @@ extension ContentView {
             RoundedRectangle(cornerRadius: 8, style: .continuous)
                 .fill(
                     LinearGradient(
-                        colors: selectedDay.colorRamp,
+                        colors: selectedRamp,
                         startPoint: .leading,
                         endPoint: .trailing
                     )
                 )
                 .frame(height: 12)
+                .accessibilityElement(children: .ignore)
+                .accessibilityIdentifier("colorRamp")
+                .accessibilityLabel(selectedAppearance.ramp.joined(separator: ","))
         }
     }
 
@@ -87,7 +92,7 @@ extension ContentView {
             ForEach(SkyMoment.allCases) { moment in
                 Button {
                     withAnimation(.easeInOut(duration: 0.25)) {
-                        selectedMoment = moment
+                        serverViewModel.select(moment)
                     }
                 } label: {
                     HStack(spacing: 12) {
@@ -107,7 +112,7 @@ extension ContentView {
 
                         Spacer()
 
-                        Text(selectedDay.time(for: moment))
+                        Text(moment == .now ? selectedDay.nowTime : selectedDay.time(for: moment))
                             .font(.system(size: 13, weight: moment == selectedMoment ? .semibold : .medium, design: .rounded))
                             .foregroundStyle(moment == selectedMoment ? inkColor : inkColor.opacity(0.55))
                     }
@@ -126,6 +131,9 @@ extension ContentView {
                 }
                 .buttonStyle(.plain)
                 .accessibilityIdentifier("moment.\(moment.id)")
+                .accessibilityValue(moment == selectedMoment ? "Selected" : "Not selected")
+                .disabled(!serverViewModel.isAvailable(moment))
+                .opacity(serverViewModel.isAvailable(moment) ? 1 : 0.4)
             }
         }
     }
@@ -144,7 +152,7 @@ extension ContentView {
 
                 Spacer()
 
-                Text("\(selectedDay.qualityScore)/100")
+                Text("\(scoreText)/100")
                     .font(.system(size: 12, weight: .bold, design: .rounded))
                     .padding(.horizontal, 12)
                     .padding(.vertical, 7)
@@ -161,17 +169,15 @@ extension ContentView {
 
             RoundedRectangle(cornerRadius: 6, style: .continuous)
                 .fill(
-                    LinearGradient(colors: selectedDay.colorRamp, startPoint: .leading, endPoint: .trailing)
+                    LinearGradient(colors: selectedRamp, startPoint: .leading, endPoint: .trailing)
                 )
                 .frame(height: 10)
                 .padding(.top, 16)
 
             HStack {
-                Text(selectedDay.firstLight)
+                Text(selectedMoment.label)
                 Spacer()
-                Text(selectedDay.sunrise)
-                Spacer()
-                Text(selectedDay.blueEnd)
+                Text(selectedDay.time(for: selectedMoment))
             }
             .font(.system(size: 10.5, weight: .semibold, design: .rounded))
             .foregroundStyle(.white.opacity(0.72))
@@ -201,7 +207,7 @@ extension ContentView {
 
     var analysisMetrics: some View {
         HStack(spacing: 18) {
-            analysisMetric(title: "Golden", value: selectedDay.golden)
+            analysisMetric(title: "Golden", value: selectedMoment.isEvening ? selectedDay.goldenPM : selectedDay.golden)
             analysisMetric(title: "Cloud", value: selectedDay.cloud)
             analysisMetric(title: "UV", value: selectedDay.uv)
         }

@@ -10,7 +10,10 @@ struct ContentView: View {
     @State var sunsetAlertEnabled = false
     @State var selectedPlan: SubscriptionPlan = .yearly
     @State var showCalendarInfo = false
-    @State var selectedMoment: SkyMoment = .sunrise
+    @State var manualLatitude = ""
+    @State var manualLongitude = ""
+    @State var manualAltitude = ""
+    @FocusState var coordinateFocus: String?
     @State var appTheme: AppTheme = .dark
 
     var backgroundColor: Color { appTheme.backgroundColor }
@@ -19,6 +22,10 @@ struct ContentView: View {
     var accentColor: Color { appTheme.accentColor }
     var barColor: Color { appTheme.barColor }
     var cardColor: Color { appTheme.cardColor }
+    var selectedMoment: SkyMoment { serverViewModel.selectedMoment }
+    var selectedAppearance: SkyAppearance { serverViewModel.skyAppearance }
+    var selectedRamp: [Color] { selectedAppearance.ramp.map { Color(hex: $0) } }
+    var scoreText: String { serverViewModel.isScoreAvailable ? String(selectedDay.qualityScore) : "—" }
 
     var selectedDay: PrototypeDay {
         serverViewModel.forecastDays.first(where: { $0.id == selectedDayID })
@@ -43,20 +50,22 @@ struct ContentView: View {
                     )
 
                     if !isSkyExpanded {
-                        VStack(alignment: .leading, spacing: 0) {
-                            scoreHeader(availableWidth: contentWidth)
-                                .padding(.top, 28)
+                        ScrollView {
+                            VStack(alignment: .leading, spacing: 0) {
+                                scoreHeader(availableWidth: contentWidth)
+                                    .padding(.top, 28)
 
-                            predictedColorRamp
-                                .frame(width: contentWidth)
-                                .padding(.top, 24)
+                                predictedColorRamp
+                                    .frame(width: contentWidth)
+                                    .padding(.top, 24)
 
-                            eventTimeline
-                                .frame(width: contentWidth)
-                                .padding(.top, 20)
+                                eventTimeline
+                                    .frame(width: contentWidth)
+                                    .padding(.top, 20)
+                            }
+                            .padding(.horizontal, 26)
+                            .padding(.bottom, 76)
                         }
-                        .padding(.horizontal, 26)
-                        .padding(.bottom, 12)
                         .frame(maxWidth: .infinity, alignment: .topLeading)
                         .frame(maxHeight: .infinity, alignment: .top)
                         .background(
@@ -79,6 +88,19 @@ struct ContentView: View {
                         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
                         .ignoresSafeArea(edges: .bottom)
                         .transition(.move(edge: .bottom).combined(with: .opacity))
+
+                    Button {
+                        withAnimation(.spring(response: 0.6, dampingFraction: 0.88)) {
+                            isSkyExpanded = false
+                        }
+                    } label: {
+                        Image(systemName: "arrow.down.right.and.arrow.up.left")
+                            .padding(14)
+                            .background(.black.opacity(0.25), in: Circle())
+                    }
+                    .foregroundStyle(.white)
+                    .accessibilityIdentifier("expandButton")
+                    .padding(.bottom, 10)
                 }
 
                 if !isSkyExpanded {
@@ -102,7 +124,7 @@ struct ContentView: View {
                         .presentationDragIndicator(.visible)
                 case .locations:
                     locationsSheet
-                        .presentationDetents([.height(420)])
+                        .presentationDetents([.large])
                         .presentationDragIndicator(.visible)
                 case .paywall:
                     paywallSheet
@@ -113,24 +135,11 @@ struct ContentView: View {
         }
         .preferredColorScheme(appTheme.colorScheme)
         .task {
+            #if DEBUG
+            // UI audits enter explicit coordinates instead of depending on simulator GPS.
+            if ProcessInfo.processInfo.arguments.contains("-uiAudit") { return }
+            #endif
             await serverViewModel.loadForecast()
-        }
-        .alert(
-            "Live forecast unavailable",
-            isPresented: Binding(
-                get: { serverViewModel.errorMessage != nil },
-                set: { isPresented in
-                    if !isPresented {
-                        serverViewModel.clearError()
-                    }
-                }
-            )
-        ) {
-            Button("OK", role: .cancel) {
-                serverViewModel.clearError()
-            }
-        } message: {
-            Text(serverViewModel.errorMessage ?? "Please try again later.")
         }
     }
 
@@ -140,17 +149,10 @@ struct ContentView: View {
 
     func skyHero(height: CGFloat, topInset: CGFloat) -> some View {
         ZStack(alignment: .top) {
-            TimelineView(.periodic(from: .now, by: 60)) { context in
-                SkyBackgroundView(
-                    appearance: serverViewModel.appearance(at: context.date),
-                    isExpanded: isSkyExpanded
-                )
-            }
-
-            if let overlay = selectedMoment.overlayGradient {
-                LinearGradient(colors: overlay, startPoint: .top, endPoint: .bottom)
-                    .opacity(0.26)
-            }
+            SkyBackgroundView(appearance: selectedAppearance, isExpanded: isSkyExpanded)
+                .accessibilityElement(children: .ignore)
+                .accessibilityIdentifier("skyAppearance")
+                .accessibilityLabel(selectedAppearance.stops.map(\.hex).joined(separator: ","))
 
             VStack(spacing: 0) {
                 Button {
@@ -171,20 +173,28 @@ struct ContentView: View {
                 .accessibilityIdentifier("locationButton")
                 .padding(.top, topInset + 10)
 
-                if serverViewModel.isLoading {
-                    HStack(spacing: 7) {
+                HStack(spacing: 7) {
+                    if serverViewModel.isLoading {
                         ProgressView()
                             .tint(.white)
                             .scaleEffect(0.7)
-                        Text(serverViewModel.statusText)
-                            .font(.system(size: 10, weight: .semibold, design: .rounded))
                     }
-                    .foregroundStyle(.white.opacity(0.86))
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 8)
-                    .background(.black.opacity(0.18), in: Capsule())
-                    .padding(.top, 8)
+                    Text(serverViewModel.statusText)
+                        .font(.system(size: 10, weight: .semibold, design: .rounded))
+                        .accessibilityIdentifier("forecastStatus")
+                    if !serverViewModel.isLoading && !serverViewModel.isLive {
+                        Button("Retry") {
+                            Task { await serverViewModel.loadForecast() }
+                        }
+                        .font(.system(size: 11, weight: .bold, design: .rounded))
+                        .accessibilityIdentifier("retryForecastButton")
+                    }
                 }
+                .foregroundStyle(.white.opacity(0.86))
+                .padding(.horizontal, 12)
+                .padding(.vertical, 8)
+                .background(.black.opacity(0.18), in: Capsule())
+                .padding(.top, 8)
 
                 Spacer()
             }
