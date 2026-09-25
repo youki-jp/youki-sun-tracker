@@ -25,12 +25,14 @@ struct ContentView: View {
     var selectedMoment: SkyMoment { serverViewModel.selectedMoment }
     var selectedAppearance: SkyAppearance { serverViewModel.skyAppearance }
     var selectedRamp: [Color] { selectedAppearance.ramp.map { Color(hex: $0) } }
-    var scoreText: String { serverViewModel.isScoreAvailable ? String(selectedDay.qualityScore) : "—" }
+    var scoreText: String {
+        guard serverViewModel.isScoreAvailable, let selectedDay else { return "—" }
+        return String(selectedDay.qualityScore)
+    }
 
-    var selectedDay: PrototypeDay {
+    var selectedDay: PrototypeDay? {
         serverViewModel.forecastDays.first(where: { $0.id == selectedDayID })
             ?? serverViewModel.forecastDays.first
-            ?? PrototypeDay.sampleDays[0]
     }
 
     var body: some View {
@@ -38,6 +40,13 @@ struct ContentView: View {
             let topInset = proxy.safeAreaInsets.top
             let bottomInset = proxy.safeAreaInsets.bottom
             let contentWidth = max(proxy.size.width - 52, 0)
+            let compactLayout = proxy.size.height < 740
+            let heroHeight = skyHeight(for: proxy)
+            let panelHeight = max(proxy.size.height - heroHeight, 0)
+            let headerHeight: CGFloat = compactLayout ? 88 : 98
+            let sectionSpacing: CGFloat = compactLayout ? 10 : 14
+            let topPadding: CGFloat = compactLayout ? 10 : 16
+            let rowHeight = max(28, (panelHeight - headerHeight - 30 - topPadding - sectionSpacing * 2 - 8) / 7)
 
             ZStack(alignment: .bottom) {
                 backgroundColor
@@ -45,29 +54,39 @@ struct ContentView: View {
 
                 VStack(spacing: 0) {
                     skyHero(
-                        height: skyHeight(for: proxy),
+                        height: heroHeight,
                         topInset: topInset
                     )
 
                     if !isSkyExpanded {
-                        ScrollView {
-                            VStack(alignment: .leading, spacing: 0) {
-                                scoreHeader(availableWidth: contentWidth)
-                                    .padding(.top, 28)
+                        VStack(alignment: .leading, spacing: 0) {
+                            if serverViewModel.isLoading {
+                                forecastSkeleton(availableWidth: contentWidth, headerHeight: headerHeight,
+                                                 rowHeight: rowHeight, sectionSpacing: sectionSpacing,
+                                                 compact: compactLayout)
+                                    .padding(.top, topPadding)
+                            } else if selectedDay != nil {
+                                scoreHeader(availableWidth: contentWidth, compact: compactLayout)
+                                    .frame(height: headerHeight, alignment: .top)
+                                    .padding(.top, topPadding)
 
                                 predictedColorRamp
                                     .frame(width: contentWidth)
-                                    .padding(.top, 24)
+                                    .padding(.top, sectionSpacing)
 
-                                eventTimeline
+                                eventTimeline(rowHeight: rowHeight, compact: compactLayout)
                                     .frame(width: contentWidth)
-                                    .padding(.top, 20)
+                                    .padding(.top, sectionSpacing)
+                            } else {
+                                forecastEmptyState
+                                    .frame(maxWidth: contentWidth, maxHeight: .infinity)
                             }
-                            .padding(.horizontal, 26)
-                            .padding(.bottom, 76)
+
+                            Spacer(minLength: 0)
                         }
+                        .padding(.horizontal, 26)
                         .frame(maxWidth: .infinity, alignment: .topLeading)
-                        .frame(maxHeight: .infinity, alignment: .top)
+                        .frame(height: panelHeight, alignment: .top)
                         .background(
                             panelColor
                                 .ignoresSafeArea(.container, edges: .horizontal)
@@ -79,11 +98,17 @@ struct ContentView: View {
                     alignment: .topLeading
                 )
                 .frame(maxWidth: .infinity, alignment: .topLeading)
-                .clipShape(RoundedRectangle(cornerRadius: isSkyExpanded ? 0 : 32, style: .continuous))
+                .clipShape(UnevenRoundedRectangle(topLeadingRadius: isSkyExpanded ? 0 : 32, bottomLeadingRadius: 0, bottomTrailingRadius: 0, topTrailingRadius: isSkyExpanded ? 0 : 32, style: .continuous))
                 .ignoresSafeArea(edges: isSkyExpanded ? .all : .top)
 
                 if isSkyExpanded {
-                    analysisCard(width: proxy.size.width - 32)
+                    Group {
+                        if selectedDay != nil && !serverViewModel.isLoading {
+                            analysisCard(width: proxy.size.width - 32)
+                        } else {
+                            analysisEmptyCard(width: proxy.size.width - 32)
+                        }
+                    }
                         .padding(.bottom, bottomInset + 64)
                         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
                         .ignoresSafeArea(edges: .bottom)
@@ -134,6 +159,9 @@ struct ContentView: View {
             }
         }
         .preferredColorScheme(appTheme.colorScheme)
+        .onChange(of: serverViewModel.isLoading) { _, loading in
+            if loading { isSkyExpanded = false }
+        }
         .task {
             #if DEBUG
             // UI audits enter explicit coordinates instead of depending on simulator GPS.
@@ -144,15 +172,27 @@ struct ContentView: View {
     }
 
     func skyHeight(for proxy: GeometryProxy) -> CGFloat {
-        isSkyExpanded ? proxy.size.height + proxy.safeAreaInsets.top + proxy.safeAreaInsets.bottom : 266
+        isSkyExpanded
+            ? proxy.size.height + proxy.safeAreaInsets.top + proxy.safeAreaInsets.bottom
+            : max(160, min(222, proxy.size.height * 0.29))
     }
 
     func skyHero(height: CGFloat, topInset: CGFloat) -> some View {
         ZStack(alignment: .top) {
-            SkyBackgroundView(appearance: selectedAppearance, isExpanded: isSkyExpanded)
-                .accessibilityElement(children: .ignore)
-                .accessibilityIdentifier("skyAppearance")
-                .accessibilityLabel(selectedAppearance.stops.map(\.hex).joined(separator: ","))
+            if serverViewModel.hasLiveSky {
+                SkyBackgroundView(appearance: selectedAppearance, isExpanded: isSkyExpanded)
+                    .accessibilityElement(children: .ignore)
+                    .accessibilityIdentifier("skyAppearance")
+                    .accessibilityLabel(selectedAppearance.stops.map(\.hex).joined(separator: ","))
+            } else {
+                LinearGradient(
+                    colors: appTheme == .dark
+                        ? [Color(hex: "#35353D"), Color(hex: "#565461")]
+                        : [Color(hex: "#AEBAC9"), Color(hex: "#D2DCE6")],
+                    startPoint: .top, endPoint: .bottom
+                )
+                .accessibilityLabel(serverViewModel.isLoading ? "Loading sky" : "Sky color unavailable")
+            }
 
             VStack(spacing: 0) {
                 Button {
@@ -161,7 +201,7 @@ struct ContentView: View {
                     HStack(spacing: 6) {
                         Image(systemName: "location.circle")
                             .font(.system(size: 12, weight: .semibold))
-                        Text(selectedDay.location)
+                        Text(selectedDay?.location ?? serverViewModel.coordinates?.label ?? "Current location")
                             .font(.system(size: 12, weight: .semibold, design: .rounded))
                     }
                     .foregroundStyle(.white.opacity(0.88))
@@ -182,7 +222,7 @@ struct ContentView: View {
                     Text(serverViewModel.statusText)
                         .font(.system(size: 10, weight: .semibold, design: .rounded))
                         .accessibilityIdentifier("forecastStatus")
-                    if !serverViewModel.isLoading && !serverViewModel.isLive {
+                    if !serverViewModel.isLoading && !serverViewModel.isLive && selectedDay != nil {
                         Button("Retry") {
                             Task { await serverViewModel.loadForecast() }
                         }
@@ -203,8 +243,10 @@ struct ContentView: View {
         .frame(height: height)
         .contentShape(Rectangle())
         .onTapGesture {
-            withAnimation(.spring(response: 0.6, dampingFraction: 0.88)) {
-                isSkyExpanded.toggle()
+            if selectedDay != nil && !serverViewModel.isLoading {
+                withAnimation(.spring(response: 0.6, dampingFraction: 0.88)) {
+                    isSkyExpanded.toggle()
+                }
             }
         }
     }

@@ -5,9 +5,9 @@ import SwiftUI
 
 @MainActor
 final class ServerViewModel: ObservableObject {
-    @Published private(set) var forecastDays = PrototypeDay.sampleDays
-    @Published private(set) var statusText = "Sample sky and forecast"
-    @Published private(set) var isLoading = false
+    @Published private(set) var forecastDays: [PrototypeDay] = []
+    @Published private(set) var statusText = "Finding location"
+    @Published private(set) var isLoading = true
     @Published private(set) var isLive = false
     @Published private(set) var errorMessage: String?
     @Published private(set) var skyAppearance = SkyAppearance.fallback
@@ -44,7 +44,7 @@ final class ServerViewModel: ObservableObject {
     }
 
     var isScoreAvailable: Bool {
-        if !hasLiveSky && !hasLiveForecast { return true }
+        if !hasLiveForecast { return false }
         let hour = timeline.flatMap { Self.localHour(currentDate, timezone: $0.location.timezoneId) } ?? 0
         let evening = selectedMoment == .now ? hour >= 12 : selectedMoment.isEvening
         return predictions?.predictions.contains { $0.kind == (evening ? .sunset : .sunrise) } ?? false
@@ -57,7 +57,7 @@ final class ServerViewModel: ObservableObject {
             }
             return appearances[moment] != nil
         }
-        return !hasLiveForecast && !isLoading
+        return false
     }
 
     func select(_ moment: SkyMoment) {
@@ -77,7 +77,8 @@ final class ServerViewModel: ObservableObject {
 
     func loadDeviceLocation() async {
         useDeviceLocation = true
-        let id = beginRequest(status: "Finding location · sample preview")
+        coordinates = nil
+        let id = beginRequest(status: "Finding location")
         do {
             let location = try await locationManager.currentLocation()
             guard requestID == id else { return }
@@ -96,7 +97,7 @@ final class ServerViewModel: ObservableObject {
     func load(_ coordinates: ForecastCoordinates) async {
         useDeviceLocation = false
         self.coordinates = coordinates
-        let id = beginRequest(status: "Loading forecast · sample preview")
+        let id = beginRequest(status: "Loading forecast")
         await fetch(coordinates, id: id)
     }
 
@@ -111,7 +112,7 @@ final class ServerViewModel: ObservableObject {
         predictions = nil
         appearances = [:]
         skyAppearance = .fallback
-        forecastDays = PrototypeDay.sampleDays
+        forecastDays = []
         hasLiveSky = false
         hasLiveForecast = false
         isLive = false
@@ -120,7 +121,7 @@ final class ServerViewModel: ObservableObject {
     }
 
     private func fetch(_ coordinates: ForecastCoordinates, id: UUID) async {
-        statusText = "Loading forecast · sample preview"
+        statusText = "Loading forecast"
         // A score failure must not discard a usable sky, or vice versa.
         async let scoreResult = capture {
             try await self.predictionLoader(coordinates)
@@ -180,8 +181,13 @@ final class ServerViewModel: ObservableObject {
                     ? (SkyMoment.allCases.first(where: { $0 != .now && appearances[$0] != nil }) ?? .now)
                     : firstAvailable
             }
-        } else if hasLiveForecast && predictions?.predictions.first(where: { $0.kind == .sunrise }) == nil {
-            selectedMoment = .sunset
+        } else if hasLiveForecast {
+            let availableKinds = predictions?.predictions.map(\.kind) ?? []
+            if !availableKinds.contains(.sunrise) {
+                selectedMoment = .sunset
+            } else if !availableKinds.contains(.sunset) {
+                selectedMoment = .sunrise
+            }
         }
         isLoading = false
         errorMessage = failures.isEmpty ? nil : failures.joined(separator: "\n")
@@ -200,12 +206,12 @@ final class ServerViewModel: ObservableObject {
         switch (hasLiveSky, hasLiveForecast && isScoreAvailable) {
         case (true, true): statusText = partialAtmosphere ? "Live sky · partial atmosphere" : "Live sky and forecast"
         case (true, false): statusText = "Live sky · score unavailable"
-        case (false, true): statusText = "Live score · sample sky"
-        case (false, false): statusText = "Sample sky and forecast"
+        case (false, true): statusText = "Live score · sky unavailable"
+        case (false, false): statusText = "Forecast unavailable"
         }
         if let predictions, let day = ForecastMapper.makeDay(
             from: predictions, locationName: coordinates?.label ?? "Current location",
-            generatedRamp: skyAppearance.ramp.map { Color(hex: $0) },
+            generatedRamp: hasLiveSky ? skyAppearance.ramp.map { Color(hex: $0) } : nil,
             moment: selectedMoment, timeline: timeline, currentDate: currentDate
         ) {
             forecastDays = [day]
@@ -218,8 +224,8 @@ final class ServerViewModel: ObservableObject {
 
     private func finishFailure(_ message: String) {
         isLoading = false
-        selectedMoment = .sunrise
-        statusText = "Sample sky and forecast"
+        selectedMoment = .now
+        statusText = "Forecast unavailable"
         errorMessage = message
     }
 

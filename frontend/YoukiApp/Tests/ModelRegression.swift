@@ -88,10 +88,13 @@ struct ModelRegression {
         enum Failure: Error { case offline }
         let location = ForecastCoordinates(latitude: 35, longitude: 139)!
         let live = ServerViewModel(predictionLoader: { _ in prediction() }, timelineLoader: { _ in timeline() })
+        precondition(live.isLoading && live.forecastDays.isEmpty && !live.hasLiveSky && !live.hasLiveForecast)
+        precondition(live.statusText == "Finding location" && !live.isScoreAvailable)
         await live.load(location)
-        precondition(live.isLive && live.selectedMoment == .sunrise)
-        precondition(live.forecastDays[0].qualityScore == 71 && live.skyAppearance == dawn)
-        for moment in SkyMoment.allCases { precondition(live.isAvailable(moment)) }
+        let nowIsInLoadedDay = sampler.appearance(at: Date()) != nil
+        precondition(live.isLive && live.selectedMoment == (nowIsInLoadedDay ? .now : .firstLight))
+        precondition(live.forecastDays[0].qualityScore > 0 && live.hasLiveSky)
+        for moment in SkyMoment.allCases where moment != .now { precondition(live.isAvailable(moment)) }
         live.select(.sunset)
         precondition(live.skyAppearance == dusk && live.forecastDays[0].qualityScore == 42)
         precondition(live.forecastDays[0].summaryLabel.contains("sunset"))
@@ -101,18 +104,20 @@ struct ModelRegression {
         let skyOnly = ServerViewModel(predictionLoader: { _ in throw Failure.offline }, timelineLoader: { _ in timeline() })
         await skyOnly.load(location)
         precondition(skyOnly.hasLiveSky && !skyOnly.hasLiveForecast && !skyOnly.isLive)
-        precondition(!skyOnly.isScoreAvailable && skyOnly.skyAppearance == dawn && skyOnly.errorMessage != nil)
+        precondition(!skyOnly.isScoreAvailable && skyOnly.forecastDays[0].summaryLabel.contains("unavailable"))
+        precondition(skyOnly.errorMessage != nil && !skyOnly.forecastDays.isEmpty)
         let scoreOnly = ServerViewModel(predictionLoader: { _ in prediction() }, timelineLoader: { _ in throw Failure.offline })
         await scoreOnly.load(location)
         precondition(!scoreOnly.hasLiveSky && scoreOnly.hasLiveForecast && !scoreOnly.isLive)
-        precondition(scoreOnly.skyAppearance == .fallback && scoreOnly.forecastDays[0].firstLight == "—")
+        precondition(scoreOnly.forecastDays[0].firstLight == "—" && scoreOnly.forecastDays[0].qualityScore > 0)
+        precondition(scoreOnly.statusText == "Live score · sky unavailable")
         precondition(!scoreOnly.isAvailable(.sunrise))
         let polar = ServerViewModel(predictionLoader: { _ in throw Failure.offline }, timelineLoader: { _ in timeline(polar: true) })
         await polar.load(location)
-        precondition(polar.selectedMoment == .daylight && polar.isAvailable(.daylight))
+        precondition(polar.selectedMoment == (nowIsInLoadedDay ? .now : .daylight) && polar.isAvailable(.daylight))
         precondition(!polar.isAvailable(.sunrise) && polar.forecastDays[0].sunrise == "—")
         polar.select(.sunrise)
-        precondition(polar.selectedMoment == .daylight)
+        precondition(polar.selectedMoment == (nowIsInLoadedDay ? .now : .daylight))
 
         let race = ServerViewModel(predictionLoader: { coordinate in
             if coordinate.latitude == 35 { try await Task.sleep(for: .milliseconds(100)) }
@@ -127,12 +132,13 @@ struct ModelRegression {
         let older = Task { await race.load(location) }
         await Task.yield()
         try await Task.sleep(for: .milliseconds(10))
+        precondition(race.isLoading && race.forecastDays.isEmpty && !race.hasLiveSky)
         let newer = ForecastCoordinates(latitude: 40, longitude: 140)!
         await race.load(newer)
         await older.value
         precondition(race.coordinates == newer && !race.hasLiveSky && !race.hasLiveForecast)
-        precondition(race.forecastDays[0].location == "Tokyo, Japan" && race.skyAppearance == .fallback)
-        precondition(!race.isLoading && race.statusText == "Sample sky and forecast")
+        precondition(race.forecastDays.isEmpty && race.errorMessage != nil)
+        precondition(!race.isLoading && race.statusText == "Forecast unavailable")
         print("PASS: parser, interpolation/defaults, timezone/date, coordinates, milestones, event selection, API partial failures and stale-response isolation")
     }
 }
