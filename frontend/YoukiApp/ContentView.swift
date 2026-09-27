@@ -15,6 +15,7 @@ struct ContentView: View {
     @State var manualAltitude = ""
     @FocusState var coordinateFocus: String?
     @State var appTheme: AppTheme = .dark
+    @Environment(\.scenePhase) private var scenePhase
 
     var backgroundColor: Color { appTheme.backgroundColor }
     var panelColor: Color { appTheme.panelColor }
@@ -23,7 +24,7 @@ struct ContentView: View {
     var barColor: Color { appTheme.barColor }
     var cardColor: Color { appTheme.cardColor }
     var selectedMoment: SkyMoment { serverViewModel.selectedMoment }
-    var selectedAppearance: SkyAppearance { serverViewModel.skyAppearance }
+    var selectedAppearance: SkyAppearance { serverViewModel.skyScene.base }
     var selectedRamp: [Color] { selectedAppearance.ramp.map { Color(hex: $0) } }
     var scoreText: String {
         guard serverViewModel.isScoreAvailable, let selectedDay else { return "—" }
@@ -162,8 +163,15 @@ struct ContentView: View {
         .onChange(of: serverViewModel.isLoading) { _, loading in
             if loading { isSkyExpanded = false }
         }
+        .onChange(of: scenePhase) { _, phase in
+            serverViewModel.setForeground(phase == .active)
+        }
         .task {
             #if DEBUG
+            if ProcessInfo.processInfo.arguments.contains(where: { $0.hasPrefix("-uiSkyFixture") }) {
+                await serverViewModel.load(ForecastCoordinates(latitude: 35, longitude: 139)!)
+                return
+            }
             // UI audits enter explicit coordinates instead of depending on simulator GPS.
             if ProcessInfo.processInfo.arguments.contains("-uiAudit") { return }
             #endif
@@ -180,10 +188,10 @@ struct ContentView: View {
     func skyHero(height: CGFloat, topInset: CGFloat) -> some View {
         ZStack(alignment: .top) {
             if serverViewModel.hasLiveSky {
-                SkyBackgroundView(appearance: selectedAppearance, isExpanded: isSkyExpanded)
+                SkyBackgroundView(scene: serverViewModel.skyScene, isExpanded: isSkyExpanded)
                     .accessibilityElement(children: .ignore)
                     .accessibilityIdentifier("skyAppearance")
-                    .accessibilityLabel(selectedAppearance.stops.map(\.hex).joined(separator: ","))
+                    .accessibilityLabel(serverViewModel.skyScene.accessibilityDescription)
             } else {
                 LinearGradient(
                     colors: appTheme == .dark
@@ -201,7 +209,7 @@ struct ContentView: View {
                     HStack(spacing: 6) {
                         Image(systemName: "location.circle")
                             .font(.system(size: 12, weight: .semibold))
-                        Text(selectedDay?.location ?? serverViewModel.coordinates?.label ?? "Current location")
+                        Text(serverViewModel.locationName)
                             .font(.system(size: 12, weight: .semibold, design: .rounded))
                     }
                     .foregroundStyle(.white.opacity(0.88))
@@ -213,28 +221,20 @@ struct ContentView: View {
                 .accessibilityIdentifier("locationButton")
                 .padding(.top, topInset + 10)
 
-                HStack(spacing: 7) {
-                    if serverViewModel.isLoading {
-                        ProgressView()
-                            .tint(.white)
-                            .scaleEffect(0.7)
+                if serverViewModel.isLoading {
+                    ProgressView()
+                        .tint(.white)
+                        .scaleEffect(0.7)
+                        .padding(.top, 12)
+                        .accessibilityIdentifier("forecastLoadingIndicator")
+                } else if !serverViewModel.isLive && selectedDay != nil {
+                    Button("Retry") {
+                        Task { await serverViewModel.loadForecast() }
                     }
-                    Text(serverViewModel.statusText)
-                        .font(.system(size: 10, weight: .semibold, design: .rounded))
-                        .accessibilityIdentifier("forecastStatus")
-                    if !serverViewModel.isLoading && !serverViewModel.isLive && selectedDay != nil {
-                        Button("Retry") {
-                            Task { await serverViewModel.loadForecast() }
-                        }
-                        .font(.system(size: 11, weight: .bold, design: .rounded))
-                        .accessibilityIdentifier("retryForecastButton")
-                    }
+                    .font(.system(size: 11, weight: .bold, design: .rounded))
+                    .accessibilityIdentifier("retryForecastButton")
+                    .padding(.top, 8)
                 }
-                .foregroundStyle(.white.opacity(0.86))
-                .padding(.horizontal, 12)
-                .padding(.vertical, 8)
-                .background(.black.opacity(0.18), in: Capsule())
-                .padding(.top, 8)
 
                 Spacer()
             }

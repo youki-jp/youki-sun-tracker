@@ -15,4 +15,10 @@ export interface WeatherSample {
   dewPointCelsius: number | null;
   precipitationMillimeters: number | null;
   uvIndex: number | null;
+  solarRadiation?: {
+    sampling: "instant";
+    directNormalWm2: number | null;
+    globalHorizontalWm2: number | null;
+    diffuseHorizontalWm2: number | null;
+  };
 }

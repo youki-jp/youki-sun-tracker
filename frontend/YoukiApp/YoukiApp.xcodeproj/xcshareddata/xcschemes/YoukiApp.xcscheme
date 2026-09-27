@@ -53,7 +53,7 @@
       <EnvironmentVariables>
          <EnvironmentVariable
             key = "BACKEND_URL"
-            value = "https://youki-server-2idly.ondigitalocean.app/"
+            value = "http://localhost:3000/"
             isEnabled = "YES">
          </EnvironmentVariable>
       </EnvironmentVariables>

@@ -11,6 +11,11 @@ export interface OpenMeteoDailyForecastResponse {
 export interface OpenMeteoWeatherResponse {
   timezone?: string;
   timezone_abbreviation?: string;
+  hourly_units?: {
+    direct_normal_irradiance_instant?: string;
+    shortwave_radiation_instant?: string;
+    diffuse_radiation_instant?: string;
+  };
   hourly?: {
     time?: string[];
     cloud_cover?: Array<number | null>;
@@ -22,6 +27,9 @@ export interface OpenMeteoWeatherResponse {
     dew_point_2m?: Array<number | null>;
     precipitation?: Array<number | null>;
     uv_index?: Array<number | null>;
+    direct_normal_irradiance_instant?: Array<number | null>;
+    shortwave_radiation_instant?: Array<number | null>;
+    diffuse_radiation_instant?: Array<number | null>;
   };
 }
 

@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="An interactive Youki sky study: the existing gradient with procedural clouds and sunlight. Runs locally with synthetic weather.">
+  <title>Youki / Atmosphere lab</title>
+  <link rel="stylesheet" href="sky-simulator/studio.css">
+  <script defer src="sky-simulator/gradient.js"></script>
+  <script defer src="sky-simulator/atmosphere.js"></script>
+  <script defer src="sky-simulator/studio.js"></script>
+</head>
+<body>
+  <main>
+    <header class="masthead">
+      <a class="brand" href="sky-atmosphere-simulator.html" aria-label="Youki atmosphere lab"><span class="brand-mark" aria-hidden="true"></span>youki <span class="brand-divider">/</span> <span class="brand-sub">atmosphere lab</span></a>
+      <span class="prototype-label"><span></span>Interactive study &middot; 01</span>
+    </header>
+    <section class="intro">
+      <div><p class="eyebrow">A study in light</p><h1>Sunlight &amp; clouds.</h1><p class="lead">The familiar sky palette, with a little more atmosphere.<br>Explore how light and cloud layers change its character.</p></div>
+      <div class="intro-note">LOCAL PROTOTYPE<span>Synthetic weather. No live forecast.</span><a href="sunlight-clouds-design.md">Read the design &nearr;</a></div>
+    </section>
+
+    <nav id="presets" class="presets" aria-label="Weather scenarios"></nav>
+
+    <div class="workspace">
+      <section class="preview-area" aria-label="Sky comparison">
+        <div class="preview-toolbar"><span id="scenario-caption">Warm light, scattered cloud.</span><div><button id="focus" class="text-button" aria-pressed="false">Focus view</button><button id="save-image" class="text-button">Save image &darr;</button></div></div>
+        <div class="previews" id="previews">
+          <figure class="sky-card baseline-card"><figcaption><span class="view-number">01</span> Gradient only<span class="view-tag">Original colors</span></figcaption><div class="sky-frame"><canvas id="baseline" role="img" aria-label="Original nine-stop sky gradient"></canvas><div class="frame-label">THE PALETTE</div><div class="mock-overlay" hidden><p>YOUR SKY, TODAY</p><h2 class="mock-time">17:40</h2><span>Illustrative preview</span></div></div></figure>
+          <figure class="sky-card enhanced-card"><figcaption><span class="view-number">02</span> With atmosphere<span class="view-tag enhanced-tag">New study</span></figcaption><div class="sky-frame"><canvas id="enhanced" role="img" aria-label="Sky gradient with sunlight and clouds"></canvas><div class="frame-label">THE ATMOSPHERE</div><div class="mock-overlay" hidden><p>YOUR SKY, TODAY</p><h2 class="mock-time">17:40</h2><span>Illustrative preview</span></div></div></figure>
+        </div>
+        <div class="timeline-card">
+          <div class="time-heading"><div><span class="eyebrow">Time of day</span><strong id="clock">17:40</strong><span id="phase">Golden hour</span></div><button id="play" aria-pressed="false">Play day <span aria-hidden="true">&#9654;</span></button></div>
+          <label class="sr-only" for="time">Time of day in minutes after midnight</label><input id="time" type="range" min="0" max="1439" step="1" value="1060">
+          <div class="time-markers"><button data-time="0">00:00</button><button data-time="360">Sunrise</button><button data-time="720">Noon</button><button data-time="1080">Sunset</button><button data-time="1439">23:59</button></div>
+          <p class="quiet">Illustrative day: sunrise 06:00, sunset 18:00. Cloud settings stay fixed as the sun moves.</p>
+        </div>
+        <div class="palette-section"><span class="eyebrow">Atmospheric palette</span><div id="palette" class="palette"></div><p class="quiet">Both views use exactly the same nine gradient stops.</p></div>
+      </section>
+
+      <aside class="controls" aria-label="Atmosphere controls">
+        <div class="control-heading"><h2>Shape the atmosphere</h2><button id="reset" class="text-button">Reset</button></div>
+        <fieldset><legend><span>01</span> Cloud cover</legend><div id="cloud-controls"></div></fieldset>
+        <fieldset><legend><span>02</span> Light &amp; air</legend><div id="light-controls"></div></fieldset>
+        <fieldset class="layers"><legend><span>03</span> Visible layers</legend>
+          <label><span>Sun &amp; light</span><input type="checkbox" id="show-sun" checked></label>
+          <label><span>Cloud layers</span><input type="checkbox" id="show-clouds" checked></label>
+          <label><span>Atmospheric haze</span><input type="checkbox" id="show-haze" checked></label>
+          <label><span>App text preview</span><input type="checkbox" id="show-overlay"></label>
+        </fieldset>
+        <div class="quality-card"><span class="eyebrow">Light source</span><label class="sr-only" for="data-mode">Data availability</label><select id="data-mode"><option value="radiation">Radiation + cloud model</option><option value="clouds">Cloud estimate only</option><option value="missing">Weather unavailable</option></select><p id="quality-note">Sunlight is modeled from synthetic radiation.</p></div>
+      </aside>
+    </div>
+    <section class="insight" aria-live="polite"><span class="insight-symbol" aria-hidden="true">&#9728;</span><div><h2 id="insight-title">Golden light, softened by clouds</h2><p id="insight-body"></p></div><dl><div><dt>Sun elevation</dt><dd id="elevation-stat"></dd></div><div><dt>Direct light</dt><dd id="direct-stat"></dd></div></dl></section>
+    <details class="technical"><summary>Scene values &amp; implementation notes</summary><div class="technical-content"><div><p>The base Oklch generator is unchanged. The atmosphere is a deterministic Canvas 2D prototype: procedural cloud masks, a geometry-gated sun, separate twilight glow, and a visibility veil.</p><p>Cloud shapes are illustrative, not measured. Sunlight thresholds are artistic controls. The existing gradient's night brightness is preserved for comparison; night palette calibration remains separate.</p><p><a href="sunlight-clouds-design.md">Design document</a> &middot; <a href="sunlight-clouds-implementation-plan.md">App implementation plan</a></p><button id="save-json">Export scene JSON &darr;</button></div><pre id="scene-json"></pre></div></details>
+    <footer><span>youki <span class="footer-dot">&middot;</span> Made for the moments between.</span><span>Browser prototype &middot; App and backend unchanged</span></footer>
+    <p id="notification" role="status" class="sr-only"></p>
+    <noscript>This simulator needs JavaScript enabled. It runs locally and makes no weather requests.</noscript>
+  </main>
+</body>
+</html>

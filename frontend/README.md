@@ -12,17 +12,20 @@ The screen requests the device's location and independently loads the prediction
 
 - Six selectable real solar milestones: civil dawn, golden-hour start, sunrise, solar noon, afternoon golden-hour start, and sunset
 - One selected timestamp drives the native sky and five-color ramp, including expanded analysis; sunrise is selected first when available
+- The enhanced sky scene layers a geometry-gated sun, twilight glow, and seeded cloud masks over the unchanged nine-stop gradient. It uses instantaneous direct/global/diffuse solar radiation when available and falls back to cloud-estimated light for older servers.
+- The scene distinguishes reported radiation, cloud-estimated light, and unavailable atmospheric data; it has a VoiceOver summary, and Open-Meteo attribution is available in the Locations sheet.
+- The location chip shows a reverse-geocoded city/region name for current and manually entered coordinates; it falls back to a generic label if geocoding is unavailable.
 - Nullable polar milestones show an unavailable time and are disabled; another real milestone is selected instead
 - Sunset and golden PM show the sunset score, reasons, and conditions
 - Expandable sky color analysis
 - Forecast calendar with locked premium days
 - Manual locations and subscription preview sheets
 - Light and dark theme previews
-- Persistent live, partial, loading, and sample status with retry; error details in Locations
+- Loading progress, a retry control when the forecast is incomplete, and detailed errors in Locations
 
-The sample data remains as a clearly labelled fallback and for previews. Timeline-only success keeps the live sky with unavailable scores; prediction-only success labels its sample sky and disables unavailable timeline events. Loading or changing location clears prior results, and late responses cannot replace the newest request. Missing atmospheric values use the HTML defaults before interpolation and are labelled partial.
+The sample data remains as a clearly labelled fallback and for previews. Timeline-only success keeps the live sky with unavailable scores; prediction-only success labels its sample sky and disables unavailable timeline events. Loading or changing location clears prior results, and late responses cannot replace the newest request. Same-day foreground/minute refreshes retain a usable scene, mark it stale on failure, and retry automatically no more often than every five minutes. Transient Core Location `locationUnknown` errors are retried up to three times before the app reports a readable location-unavailable message. Missing atmospheric values use the HTML defaults before interpolation and are labelled partial.
 
-`SkyGradient.swift` and `SkyDayTimelineAPI.swift` remain Foundation-only for independent HTML parity verification. Local timestamps accept HH:mm or HH:mm:ss and intentionally sample at whole-minute precision, matching the HTML. Date-based sampling uses the returned timezone and rejects dates outside the loaded day. The renderer uses the same nine stops, fractional cloud ellipses, and radial glow colors/positions as the reference; native/browser blur rasterization may differ.
+`SkyGradient.swift`, `SkyScene.swift`, `SkySceneSampler.swift`, `SkySceneGenerator.swift`, and `SkyDayTimelineAPI.swift` remain Foundation-only for standalone regression verification. Local timestamps accept HH:mm or HH:mm:ss and intentionally sample at whole-minute precision, matching the HTML. Date-based sampling uses the returned timezone and rejects dates outside the loaded day. The legacy renderer uses the same nine stops, fractional cloud ellipses, and radial glow colors/positions as the reference; native/browser blur rasterization may differ.
 
 Only one live day is loaded. Calendar sample days, subscriptions, and alarm controls remain prototype UI.
 
@@ -37,14 +40,26 @@ Run from the repository root on macOS, without booting a simulator:
 ```bash
 DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer xcrun swiftc \
   -parse-as-library -module-cache-path /tmp/youki-model-module-cache \
-  frontend/YoukiApp/{SkyGradient,SkyDayTimelineAPI,SkyColorAPI,ServerViewModel,LocationManager,ForecastMapper,PrototypeModels,Color+Hex,AppConfig}.swift \
+  frontend/YoukiApp/{SkyGradient,SkyScene,SkySceneSampler,SkySceneGenerator,SkyDayTimelineAPI,SkyColorAPI,ServerViewModel,LocationManager,ForecastMapper,PrototypeModels,Color+Hex,AppConfig}.swift \
   frontend/YoukiApp/Tests/ModelRegression.swift -o /tmp/youki-model-regression
 /tmp/youki-model-regression
 ```
 
 This checks timestamp validation, interpolation defaults, timezone/day boundaries, coordinate validation, missing milestones, event/score selection, independent API failures, and overlapping location requests.
 
-The existing `YoukiAppUITests` target covers sample status and disabled empty-coordinate submission, manual input validation, live event selection, and expanded analysis. It sets `BACKEND_URL` to `http://localhost:3000` for each app launch, so the backend must be reachable from the simulator:
+Run the scene model and generator regressions with:
+
+```bash
+DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer xcrun swiftc \
+  -parse-as-library -module-cache-path /tmp/youki-scene-module-cache \
+  frontend/YoukiApp/{SkyGradient,SkyScene,SkySceneSampler,SkySceneGenerator,SkyDayTimelineAPI,SkyColorAPI}.swift \
+  frontend/YoukiApp/Tests/SkySceneRegression.swift -o /tmp/youki-scene-regression
+/tmp/youki-scene-regression
+```
+
+For deterministic UI previews, use the debug-only launch arguments `-uiSkyFixture`, `-uiSkyFixtureOvercast`, `-uiSkyFixtureMissing`, and `-uiSkyFixtureNight`. They load synthetic local-day samples and do not affect release builds.
+
+The `YoukiAppUITests` target covers the sample/manual flows plus deterministic sun/cloud/missing-data fixtures. Existing live event-selection tests still require the backend; the synthetic sky tests set an unreachable URL to prove they use fixtures:
 
 ```bash
 DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer xcodebuild \

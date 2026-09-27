@@ -24,6 +24,9 @@ final class LocationManager: NSObject, ObservableObject, @preconcurrency CLLocat
     private let manager = CLLocationManager()
     private var locationContinuation: CheckedContinuation<CLLocation, Error>?
     private var timeoutTask: Task<Void, Never>?
+    private var retryTask: Task<Void, Never>?
+    private var locationUnknownRetries = 0
+    private let maximumLocationUnknownRetries = 3
 
     override init() {
         super.init()
@@ -39,6 +42,7 @@ final class LocationManager: NSObject, ObservableObject, @preconcurrency CLLocat
 
         return try await withCheckedThrowingContinuation { continuation in
             locationContinuation = continuation
+            locationUnknownRetries = 0
             timeoutTask = Task { [weak self] in
                 do { try await Task.sleep(for: .seconds(20)) }
                 catch { return }
@@ -87,7 +91,34 @@ final class LocationManager: NSObject, ObservableObject, @preconcurrency CLLocat
     }
 
     func locationManager(_ manager: CLLocationManager, didFailWithError error: Error) {
+        if Self.shouldRetryLocationError(error) {
+            retryAfterTemporaryLocationFailure()
+            return
+        }
         finish(with: .failure(error))
+    }
+
+    static func shouldRetryLocationError(_ error: Error) -> Bool {
+        (error as? CLError)?.code == .locationUnknown
+    }
+
+    private func retryAfterTemporaryLocationFailure() {
+        guard locationContinuation != nil else { return }
+        guard locationUnknownRetries < maximumLocationUnknownRetries else {
+            finish(with: .failure(LocationProviderError.unavailable))
+            return
+        }
+        guard retryTask == nil else { return }
+
+        locationUnknownRetries += 1
+        retryTask = Task { [weak self] in
+            do { try await Task.sleep(for: .seconds(1)) }
+            catch { return }
+            guard let self else { return }
+            self.retryTask = nil
+            guard self.locationContinuation != nil else { return }
+            self.manager.requestLocation()
+        }
     }
 
     private func finish(with result: Result<CLLocation, Error>) {
@@ -98,6 +129,8 @@ final class LocationManager: NSObject, ObservableObject, @preconcurrency CLLocat
         locationContinuation = nil
         timeoutTask?.cancel()
         timeoutTask = nil
+        retryTask?.cancel()
+        retryTask = nil
         continuation.resume(with: result)
     }
 }

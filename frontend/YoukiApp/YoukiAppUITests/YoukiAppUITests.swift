@@ -24,6 +24,53 @@ final class YoukiAppUITests: XCTestCase {
         }
     }
 
+    func testSyntheticSkySceneAndAttribution() throws {
+        app.launchArguments = ["-uiSkyFixture"]
+        app.launchEnvironment["BACKEND_URL"] = "http://127.0.0.1:1"
+        app.launch()
+        XCTAssertTrue(app.otherElements["skyAppearance"].waitForExistence(timeout: 10))
+        XCTAssertFalse(app.staticTexts["forecastStatus"].exists)
+        XCTAssertFalse(app.staticTexts["Live sky and forecast"].exists)
+        XCTAssertTrue(app.otherElements["skyAppearance"].label.contains("visible sun"))
+        let locationButton = app.buttons["locationButton"]
+        XCTAssertTrue(locationButton.label.contains("Tokyo"), locationButton.label)
+        XCTAssertFalse(app.staticTexts.containing(NSPredicate(format: "label CONTAINS %@", "Illustrated forecast")).firstMatch.exists)
+        let screenshot = XCTAttachment(screenshot: app.screenshot())
+        screenshot.name = "Synthetic sunlight and clouds"
+        screenshot.lifetime = .keepAlways
+        add(screenshot)
+        locationButton.tap()
+        let attribution = app.descendants(matching: .any)["weatherAttribution"]
+        XCTAssertTrue(attribution.waitForExistence(timeout: 3))
+        XCTAssertTrue(attribution.label.contains("Open-Meteo"))
+        app.swipeDown()
+        app.otherElements["skyAppearance"].coordinate(withNormalizedOffset: CGVector(dx: 0.08, dy: 0.92)).tap()
+        XCTAssertTrue(app.staticTexts["Color analysis"].waitForExistence(timeout: 3))
+        let expanded = XCTAttachment(screenshot: app.screenshot())
+        expanded.name = "Expanded synthetic sunlight and clouds"
+        expanded.lifetime = .keepAlways
+        add(expanded)
+    }
+
+    func testOvercastAndMissingWeatherSceneFixtures() throws {
+        for (argument, expected) in [
+            ("-uiSkyFixtureOvercast", "no visible sun"),
+            ("-uiSkyFixtureMissing", "limited weather data"),
+            ("-uiSkyFixtureNight", "no visible sun")
+        ] {
+            app.terminate()
+            app.launchArguments = [argument]
+            app.launch()
+            let sky = app.otherElements["skyAppearance"]
+            XCTAssertTrue(sky.waitForExistence(timeout: 10), argument)
+            XCTAssertTrue(sky.label.contains(expected), "\(argument): \(sky.label)")
+            let screenshot = XCTAttachment(screenshot: app.screenshot())
+            screenshot.name = "\(argument) scene"
+            screenshot.lifetime = .keepAlways
+            add(screenshot)
+        }
+    }
+
     func testMainControlsAndSheets() throws {
         app.launch()
 
@@ -33,7 +80,7 @@ final class YoukiAppUITests: XCTestCase {
         XCTAssertTrue(app.buttons["settingsButton"].waitForExistence(timeout: 5))
         XCTAssertTrue(app.buttons["wakeAlarmButton"].waitForExistence(timeout: 5))
 
-        XCTAssertEqual(app.staticTexts["forecastStatus"].label, "Sample sky and forecast")
+        XCTAssertFalse(app.staticTexts["forecastStatus"].exists)
         app.buttons["locationButton"].tap()
         XCTAssertFalse(app.buttons["manualLocationButton"].isEnabled)
         app.swipeDown()
@@ -76,12 +123,9 @@ final class YoukiAppUITests: XCTestCase {
         latitude.typeText(XCUIKeyboardKey.delete.rawValue + XCUIKeyboardKey.delete.rawValue + "35.6762\n")
         XCTAssertTrue(showSky.isEnabled)
         showSky.tap()
-        let status = app.staticTexts["forecastStatus"]
-        let live = NSPredicate(
-            format: "label == %@ OR label == %@",
-            "Live sky and forecast", "Live sky · partial atmosphere"
-        )
-        XCTAssertTrue(waitFor(live, element: status, timeout: 90), "Requires both live APIs at http://localhost:3000 with Tokyo data.")
+        let sky = app.otherElements["skyAppearance"]
+        let live = NSPredicate(format: "label CONTAINS %@", "forecast")
+        XCTAssertTrue(waitFor(live, element: sky, timeout: 90), "Requires live timeline data from http://localhost:3000 with Tokyo data.")
 
         var eventTimes: [String] = []
         for moment in ["sunrise", "daylight", "sunset"] {
