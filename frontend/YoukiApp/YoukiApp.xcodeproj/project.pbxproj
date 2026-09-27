@@ -29,6 +29,10 @@
 		A10000000000000000000016 /* SkySunLayer.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000016 /* SkySunLayer.swift */; };
 		A10000000000000000000017 /* SkyCloudLayer.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000017 /* SkyCloudLayer.swift */; };
 		A10000000000000000000018 /* SkySceneDebugFixture.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000018 /* SkySceneDebugFixture.swift */; };
+		A10000000000000000000019 /* GoldenHourAlarm.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000019 /* GoldenHourAlarm.swift */; };
+		A1000000000000000000001A /* AlarmKitScheduler.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1000000000000000000001A /* AlarmKitScheduler.swift */; };
+		A1000000000000000000001B /* GoldenHourAlarmSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1000000000000000000001B /* GoldenHourAlarmSheet.swift */; };
+		A1000000000000000000001C /* GoldenHourAlarmPlanner.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1000000000000000000001C /* GoldenHourAlarmPlanner.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -67,6 +71,10 @@
 		B10000000000000000000016 /* SkySunLayer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SkySunLayer.swift; sourceTree = "<group>"; };
 		B10000000000000000000017 /* SkyCloudLayer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SkyCloudLayer.swift; sourceTree = "<group>"; };
 		B10000000000000000000018 /* SkySceneDebugFixture.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SkySceneDebugFixture.swift; sourceTree = "<group>"; };
+		B10000000000000000000019 /* GoldenHourAlarm.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GoldenHourAlarm.swift; sourceTree = "<group>"; };
+		B1000000000000000000001A /* AlarmKitScheduler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AlarmKitScheduler.swift; sourceTree = "<group>"; };
+		B1000000000000000000001B /* GoldenHourAlarmSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GoldenHourAlarmSheet.swift; sourceTree = "<group>"; };
+		B1000000000000000000001C /* GoldenHourAlarmPlanner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GoldenHourAlarmPlanner.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -120,6 +128,10 @@
 				B10000000000000000000016 /* SkySunLayer.swift */,
 				B10000000000000000000017 /* SkyCloudLayer.swift */,
 				B10000000000000000000018 /* SkySceneDebugFixture.swift */,
+				B1000000000000000000001C /* GoldenHourAlarmPlanner.swift */,
+				B1000000000000000000001B /* GoldenHourAlarmSheet.swift */,
+				B1000000000000000000001A /* AlarmKitScheduler.swift */,
+				B10000000000000000000019 /* GoldenHourAlarm.swift */,
 				B10000000000000000000005 /* Assets.xcassets */,
 			);
 			sourceTree = "<group>";
@@ -253,6 +265,10 @@
 				A10000000000000000000016 /* SkySunLayer.swift in Sources */,
 				A10000000000000000000017 /* SkyCloudLayer.swift in Sources */,
 				A10000000000000000000018 /* SkySceneDebugFixture.swift in Sources */,
+				A1000000000000000000001C /* GoldenHourAlarmPlanner.swift in Sources */,
+				A1000000000000000000001B /* GoldenHourAlarmSheet.swift in Sources */,
+				A1000000000000000000001A /* AlarmKitScheduler.swift in Sources */,
+				A10000000000000000000019 /* GoldenHourAlarm.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

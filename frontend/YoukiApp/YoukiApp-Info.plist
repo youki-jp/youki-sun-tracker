@@ -27,6 +27,8 @@
 	</dict>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>Youki uses your location to forecast the color of the next sunrise and sunset.</string>
+	<key>NSAlarmKitUsageDescription</key>
+	<string>Youki sets alarms before sunrise or sunset golden hour at the time you choose.</string>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
 	<key>UILaunchScreen</key>

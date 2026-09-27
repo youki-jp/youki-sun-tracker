@@ -138,11 +138,21 @@ extension ContentView {
             }
 
             settingsToggleRow(
-                title: "Smart alarm",
-                subtitle: "Wake you when the forecast peaks.",
-                isOn: $smartAlarmEnabled
+                title: "Golden-hour alarm",
+                subtitle: alarmModel.scheduled != nil ? "An alarm is scheduled." : "Choose sunrise or sunset and a lead time.",
+                isOn: Binding(get: { alarmModel.scheduled != nil }, set: { enabled in
+                    if enabled { activeSheet = .alarm }
+                    else { Task { await alarmModel.cancel() } }
+                })
             )
+            .disabled(alarmModel.isBusy)
             .accessibilityIdentifier("smartAlarmToggle")
+
+            if let error = alarmModel.errorMessage {
+                Text(error)
+                    .font(.system(size: 12, design: .rounded))
+                    .foregroundStyle(accentColor)
+            }
 
             settingsToggleRow(
                 title: "Sunset alerts",

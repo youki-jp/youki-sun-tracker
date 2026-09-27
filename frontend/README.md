@@ -27,7 +27,25 @@ The sample data remains as a clearly labelled fallback and for previews. Timelin
 
 `SkyGradient.swift`, `SkyScene.swift`, `SkySceneSampler.swift`, `SkySceneGenerator.swift`, and `SkyDayTimelineAPI.swift` remain Foundation-only for standalone regression verification. Local timestamps accept HH:mm or HH:mm:ss and intentionally sample at whole-minute precision, matching the HTML. Date-based sampling uses the returned timezone and rejects dates outside the loaded day. The legacy renderer uses the same nine stops, fractional cloud ellipses, and radial glow colors/positions as the reference; native/browser blur rasterization may differ.
 
-Only one live day is loaded. Calendar sample days, subscriptions, and alarm controls remain prototype UI.
+Only one live day is loaded for the forecast screen. Calendar sample days and subscriptions remain prototype UI. The alarm setup separately loads today's/tomorrow's timeline to find the next sunrise or sunset golden-hour start, subtracts the chosen lead time (default 15 minutes), and confirms the exact date/time before enabling one system alarm. It persists its UUID and reconciles with the system on launch/foreground. Changing forecast location does not move an already confirmed alarm.
+
+System alarms require iOS 26 and an app built with the iOS 26 SDK (Xcode 26+). The availability-gated AlarmKit adapter uses a fixed schedule, system sound, and Stop action. Xcode 16.4 can build the app but displays an unavailable explanation and cannot compile/verify the AlarmKit branch. No notification is silently substituted for an alarm. Real ringing, locked/closed-app behavior, and cancellation need physical iOS 26 verification. Synthetic sky fixtures cannot enable real alarms.
+
+Alarm model regressions run without Simulator:
+
+```bash
+DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer xcrun swiftc \
+  -parse-as-library -module-cache-path /tmp/youki-alarm-module-cache \
+  frontend/YoukiApp/{GoldenHourAlarm,AlarmKitScheduler}.swift \
+  frontend/YoukiApp/Tests/AlarmRegression.swift -o /tmp/youki-alarm-regression
+TZ=Asia/Tokyo /tmp/youki-alarm-regression
+
+DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer xcrun swiftc \
+  -parse-as-library -module-cache-path /tmp/youki-alarm-planner-module-cache \
+  frontend/YoukiApp/{GoldenHourAlarm,AlarmKitScheduler,GoldenHourAlarmPlanner,SkyDayTimelineAPI}.swift \
+  frontend/YoukiApp/Tests/AlarmPlannerRegression.swift -o /tmp/youki-alarm-planner-regression
+/tmp/youki-alarm-planner-regression
+```
 
 ## Backend URL
 
