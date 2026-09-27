@@ -41,24 +41,22 @@ extension ContentView {
                 .fixedSize(horizontal: false, vertical: true)
 
             Button {
-                withAnimation(.easeInOut(duration: 0.2)) {
-                    wakeEnabled.toggle()
-                }
+                activeSheet = .alarm
             } label: {
-                Text(wakeEnabled ? "Wake alarm on" : "Wake me")
+                Text(alarmModel.scheduled != nil ? "Alarm on" : "Set alarm")
                     .font(.system(size: 12, weight: .bold, design: .rounded))
-                    .foregroundStyle(wakeEnabled ? accentColor : .white)
+                    .foregroundStyle(alarmModel.scheduled != nil ? accentColor : .white)
                     .lineLimit(1)
                     .minimumScaleFactor(0.85)
                     .padding(.horizontal, 16)
                     .padding(.vertical, compact ? 6 : 8)
                     .background(
                         Capsule()
-                            .fill(wakeEnabled ? accentColor.opacity(0.12) : accentColor)
+                            .fill(alarmModel.scheduled != nil ? accentColor.opacity(0.12) : accentColor)
                     )
                     .overlay {
                         Capsule()
-                            .stroke(wakeEnabled ? accentColor.opacity(0.35) : accentColor, lineWidth: 1.5)
+                            .stroke(alarmModel.scheduled != nil ? accentColor.opacity(0.35) : accentColor, lineWidth: 1.5)
                     }
             }
             .buttonStyle(.plain)

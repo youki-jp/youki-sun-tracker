@@ -37,6 +37,7 @@ enum AppTheme: String, CaseIterable, Identifiable {
 }
 
 enum ActiveSheet: String, Identifiable {
+    case alarm
     case calendar
     case settings
     case locations

@@ -24,6 +24,26 @@ final class YoukiAppUITests: XCTestCase {
         }
     }
 
+    func testGoldenHourAlarmOnOlderIOS() throws {
+        if #available(iOS 26, *) { throw XCTSkip("Requires an older iOS runtime") }
+        app.launchArguments = ["-uiSkyFixture"]
+        app.launchEnvironment["BACKEND_URL"] = "http://127.0.0.1:1"
+        app.launch()
+        let button = app.buttons["wakeAlarmButton"]
+        XCTAssertTrue(button.waitForExistence(timeout: 10))
+        XCTAssertEqual(button.label, "Set alarm")
+        button.tap()
+        XCTAssertTrue(app.staticTexts["alarmUnavailable"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.segmentedControls["alarmEventPicker"].exists)
+        XCTAssertTrue(app.steppers["alarmLeadStepper"].exists)
+        XCTAssertFalse(app.buttons["scheduleAlarmButton"].exists)
+        XCTAssertFalse(app.staticTexts["confirmedAlarm"].exists)
+        let attachment = XCTAttachment(screenshot: app.screenshot())
+        attachment.name = "Golden-hour alarm availability"
+        attachment.lifetime = .keepAlways
+        add(attachment)
+    }
+
     func testSyntheticSkySceneAndAttribution() throws {
         app.launchArguments = ["-uiSkyFixture"]
         app.launchEnvironment["BACKEND_URL"] = "http://127.0.0.1:1"

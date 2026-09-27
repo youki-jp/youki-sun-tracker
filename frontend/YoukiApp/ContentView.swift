@@ -5,8 +5,7 @@ struct ContentView: View {
     @State var selectedDayID = "today"
     @State var isSkyExpanded = false
     @State var activeSheet: ActiveSheet?
-    @State var wakeEnabled = true
-    @State var smartAlarmEnabled = true
+    @StateObject var alarmModel = GoldenHourAlarmViewModel()
     @State var sunsetAlertEnabled = false
     @State var selectedPlan: SubscriptionPlan = .yearly
     @State var showCalendarInfo = false
@@ -99,7 +98,6 @@ struct ContentView: View {
                     alignment: .topLeading
                 )
                 .frame(maxWidth: .infinity, alignment: .topLeading)
-                .clipShape(UnevenRoundedRectangle(topLeadingRadius: isSkyExpanded ? 0 : 32, bottomLeadingRadius: 0, bottomTrailingRadius: 0, topTrailingRadius: isSkyExpanded ? 0 : 32, style: .continuous))
                 .ignoresSafeArea(edges: isSkyExpanded ? .all : .top)
 
                 if isSkyExpanded {
@@ -140,6 +138,11 @@ struct ContentView: View {
             .foregroundStyle(inkColor)
             .sheet(item: $activeSheet) { sheet in
                 switch sheet {
+                case .alarm:
+                    GoldenHourAlarmSheet(model: alarmModel, server: serverViewModel,
+                                         theme: appTheme)
+                        .presentationDetents([.large])
+                        .presentationDragIndicator(.visible)
                 case .calendar:
                     calendarSheet
                         .presentationDetents([.height(520)])
@@ -165,8 +168,10 @@ struct ContentView: View {
         }
         .onChange(of: scenePhase) { _, phase in
             serverViewModel.setForeground(phase == .active)
+            if phase == .active { Task { await alarmModel.reconcile() } }
         }
         .task {
+            await alarmModel.reconcile()
             #if DEBUG
             if ProcessInfo.processInfo.arguments.contains(where: { $0.hasPrefix("-uiSkyFixture") }) {
                 await serverViewModel.load(ForecastCoordinates(latitude: 35, longitude: 139)!)

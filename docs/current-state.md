@@ -1,6 +1,6 @@
 # Current Project State
 
-Updated: 2026-09-25
+Updated: 2026-09-27
 
 ## Product
 
@@ -70,7 +70,8 @@ The screen also requests `POST /api/v1/sky-day/timeline`, interpolates solar/wea
 
 ## What Is Not Connected Yet
 
-- Wake alarms, notifications, widgets, subscriptions, saved locations, and persistence are visual previews only.
+- The first golden-hour alarm flow is implemented: sunrise/sunset selection, a lead time, actual timeline timing, one alarm's local persistence, and an availability-gated AlarmKit adapter. The installed Xcode 16.4 builds the unavailable path; the AlarmKit branch still needs an Xcode 26 build and physical iOS 26 verification. See [alarm design and status](alarm-first-draft.md).
+- Recurring smart alarms, ordinary notifications, widgets, subscriptions, saved locations, and forecast persistence remain previews or future work.
 - The calendar still displays the one live target day; it does not yet load a full seven-day set from the timeline endpoint.
 - The iOS target has no standalone unit-test target for the Swift math; simulator app/UI-target builds remain the available verification seam.
 - Weather and air-quality inputs remain hourly upstream; the client samples radiation and cloud inputs for the selected minute. The semantic scoring path intentionally retains nearest-sample behavior.
