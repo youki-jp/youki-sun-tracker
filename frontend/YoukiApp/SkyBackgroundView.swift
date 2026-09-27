@@ -1,8 +1,14 @@
 import SwiftUI
 
 struct SkyBackgroundView: View {
-    let appearance: SkyAppearance
+    let scene: SkyScene
     let isExpanded: Bool
+    @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
+
+    private var appearance: SkyAppearance { scene.base }
+    private var useEnhanced: Bool {
+        scene.seed != 0 && !ProcessInfo.processInfo.arguments.contains("-legacySky")
+    }
 
     var body: some View {
         GeometryReader { proxy in
@@ -15,13 +21,25 @@ struct SkyBackgroundView: View {
                     endPoint: .bottom
                 )
 
-                ForEach(appearance.cloudBands) { band in
-                    cloudRow(band: band, size: proxy.size)
+                if useEnhanced {
+                    SkySunLayer(scene: scene, size: proxy.size)
+                    SkyCloudLayer(scene: scene)
+                    if scene.veilOpacity > 0 {
+                        LinearGradient(
+                            colors: [Color.white.opacity(scene.veilOpacity * 0.12),
+                                     Color.white.opacity(scene.veilOpacity * (reduceTransparency ? 0.22 : 0.42))],
+                            startPoint: .top, endPoint: .bottom
+                        )
+                    }
+                } else {
+                    ForEach(appearance.cloudBands) { band in
+                        cloudRow(band: band, size: proxy.size)
+                    }
+                    glow(size: proxy.size)
                 }
-
-                glow(size: proxy.size)
             }
             .clipped()
+            .accessibilityHidden(true)
         }
     }
 

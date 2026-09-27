@@ -1,6 +1,6 @@
 # Current Project State
 
-Updated: 2026-09-16
+Updated: 2026-09-25
 
 ## Product
 
@@ -45,6 +45,7 @@ Implemented behavior:
 - `POST /api/v1/sky-day/timeline` returns a whole local day: real solar-elevation milestones, adaptively spaced solar samples, and the hourly weather and air-quality grids. Milestones may be null at polar latitudes where the sun never reaches a given elevation.
 - `SkyGradientService` interpolates the independent timeline grids into a normalized observation while preserving missing-field availability.
 - The deterministic `SkyGradientEngine` ports the reference Oklch model, emits nine stable stops, a five-color ramp, glow geometry, and fractional cloud bands. Its tests cover interpolation, missing data, safe ranges, atmospheric regimes, and repeatability.
+- The timeline weather provider additionally requests instantaneous direct-normal, global-horizontal, and diffuse-horizontal solar radiation as nullable W/m² fields. Missing or malformed radiation does not fail weather loading.
 - Health, liveness, and readiness endpoints are available.
 - A Dockerfile exists for a Bun production container.
 
@@ -65,14 +66,14 @@ The frontend mirrors the Youki mock and can now load the current forecast from t
 
 The screen starts with `PrototypeDay.sampleDays` as a fallback, requests the user's current location, calls `POST /api/v1/sky-color/predictions`, and maps the live response into the existing presentation model. Live score, color palette, confidence, reasons, event times, cloud cover, and UV values are displayed when the request succeeds.
 
-The screen also requests `POST /api/v1/sky-day/timeline`, interpolates solar/weather/air-quality rows locally, and renders a generated nine-stop sky with fractional cloud and glow geometry. A 60-second `TimelineView` refreshes the current appearance without putting network work in a view body.
+The screen also requests `POST /api/v1/sky-day/timeline`, interpolates solar/weather/air-quality rows locally, and renders the unchanged nine-stop gradient beneath a scene with a geometry-gated sun, twilight glow, and seeded layered clouds. Radiation-supported daylight is distinguished from a cloud-cover estimate and unavailable inputs. Same-day refresh failures retain the scene with a stale indication; changed local days clear it. A foreground minute task refreshes presentation without doing network work in a view body. The location chip reverse-geocodes coordinates to a city/region name, with a generic fallback if lookup fails. Synthetic debug fixtures and Foundation-only regressions cover clear/broken cloud, overcast, missing-data, night, and interpolation edges.
 
 ## What Is Not Connected Yet
 
 - Wake alarms, notifications, widgets, subscriptions, saved locations, and persistence are visual previews only.
 - The calendar still displays the one live target day; it does not yet load a full seven-day set from the timeline endpoint.
 - The iOS target has no standalone unit-test target for the Swift math; simulator app/UI-target builds remain the available verification seam.
-- Weather and air-quality inputs remain hourly upstream. The gradient path interpolates them, while the semantic scoring path intentionally retains nearest-sample behavior.
+- Weather and air-quality inputs remain hourly upstream; the client samples radiation and cloud inputs for the selected minute. The semantic scoring path intentionally retains nearest-sample behavior.
 - There is no CI workflow or production deployment configuration beyond the Dockerfile and DigitalOcean notes.
 
 ## Backend API

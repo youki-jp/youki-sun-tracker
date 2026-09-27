@@ -41,8 +41,6 @@ struct ForecastCoordinates: Equatable {
         self.longitude = longitude
         self.altitudeMeters = altitudeMeters
     }
-
-    var label: String { String(format: "%.4f, %.4f", latitude, longitude) }
 }
 
 struct SkyGradientInput: Equatable {

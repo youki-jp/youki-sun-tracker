@@ -75,7 +75,7 @@ extension ContentView {
                 .accessibilityIdentifier("calendarInfoButton")
 
                 if showCalendarInfo {
-                    Text(serverViewModel.statusText + ". Only the requested day is loaded; other days in sample mode are previews.")
+                    Text("Only today’s forecast is live. Other dates remain sample previews.")
                         .font(.system(size: 11, weight: .medium, design: .rounded))
                         .foregroundStyle(inkColor.opacity(0.55))
                         .lineSpacing(3)
@@ -281,8 +281,6 @@ extension ContentView {
                 .opacity(manualCoordinates == nil ? 0.45 : 1)
                 .accessibilityIdentifier("manualLocationButton")
 
-                Text(serverViewModel.statusText)
-                    .font(.system(size: 12, weight: .semibold, design: .rounded))
                 if let error = serverViewModel.errorMessage {
                     Text(error)
                         .font(.system(size: 12, design: .rounded))
@@ -293,6 +291,12 @@ extension ContentView {
                     }
                     .foregroundStyle(accentColor)
                 }
+                Link(destination: URL(string: "https://open-meteo.com/")!) {
+                    Label("Weather data by Open-Meteo", systemImage: "cloud.sun")
+                        .font(.system(size: 11, weight: .medium, design: .rounded))
+                        .foregroundStyle(inkColor.opacity(0.65))
+                }
+                .accessibilityIdentifier("weatherAttribution")
                 Text("Coordinates are used for this forecast and are not saved.")
                     .font(.system(size: 11, design: .rounded))
                     .foregroundStyle(inkColor.opacity(0.55))

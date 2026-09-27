@@ -1,4 +1,5 @@
 import Foundation
+import CoreLocation
 
 // Standalone macOS regression runner; compile with the production model files (README).
 @main
@@ -28,6 +29,8 @@ struct ModelRegression {
             weather: [
                 .init(timeIso: iso("06:00"), cloudCover: .init(totalPct: 10, lowPct: 0, midPct: 0, highPct: missingWeather ? nil : 10),
                       visibilityMeters: 24000, relativeHumidityPct: 60, dewPointCelsius: nil, precipitationMillimeters: 0, uvIndex: 2),
+                .init(timeIso: iso("12:00"), cloudCover: .init(totalPct: 45, lowPct: 10, midPct: 20, highPct: 40),
+                      visibilityMeters: 24000, relativeHumidityPct: 60, dewPointCelsius: nil, precipitationMillimeters: 0, uvIndex: 5),
                 .init(timeIso: iso("18:00"), cloudCover: .init(totalPct: 80, lowPct: 20, midPct: 40, highPct: 80),
                       visibilityMeters: 24000, relativeHumidityPct: 60, dewPointCelsius: nil, precipitationMillimeters: 0, uvIndex: 2)
             ],
@@ -55,6 +58,8 @@ struct ModelRegression {
 
     @MainActor
     static func main() async throws {
+        precondition(LocationManager.shouldRetryLocationError(CLError(.locationUnknown)))
+        precondition(!LocationManager.shouldRetryLocationError(CLError(.denied)))
         precondition(SkyTimelineSampler.localMinutes(from: "2026-09-25T05:14") == 314)
         precondition(SkyTimelineSampler.localMinutes(from: "2026-09-25T05:14:59") == 314)
         for invalid in ["bad", "2026-09-25T24:00", "2026-09-25T05:60", "2026-02-30T05:00",
@@ -87,11 +92,12 @@ struct ModelRegression {
 
         enum Failure: Error { case offline }
         let location = ForecastCoordinates(latitude: 35, longitude: 139)!
-        let live = ServerViewModel(predictionLoader: { _ in prediction() }, timelineLoader: { _ in timeline() })
+        let fixedNow = utc.date(from: "2026-09-25T03:00:00Z")!
+        let live = ServerViewModel(now: { fixedNow }, predictionLoader: { _ in prediction() }, timelineLoader: { _ in timeline() })
         precondition(live.isLoading && live.forecastDays.isEmpty && !live.hasLiveSky && !live.hasLiveForecast)
-        precondition(live.statusText == "Finding location" && !live.isScoreAvailable)
+        precondition(live.isLoading && !live.isScoreAvailable)
         await live.load(location)
-        let nowIsInLoadedDay = sampler.appearance(at: Date()) != nil
+        let nowIsInLoadedDay = sampler.appearance(at: fixedNow) != nil
         precondition(live.isLive && live.selectedMoment == (nowIsInLoadedDay ? .now : .firstLight))
         precondition(live.forecastDays[0].qualityScore > 0 && live.hasLiveSky)
         for moment in SkyMoment.allCases where moment != .now { precondition(live.isAvailable(moment)) }
@@ -101,18 +107,18 @@ struct ModelRegression {
         precondition(live.forecastDays[0].heroTime == "18:00")
         precondition(live.forecastDays[0].daylight == "12:00")
 
-        let skyOnly = ServerViewModel(predictionLoader: { _ in throw Failure.offline }, timelineLoader: { _ in timeline() })
+        let skyOnly = ServerViewModel(now: { fixedNow }, predictionLoader: { _ in throw Failure.offline }, timelineLoader: { _ in timeline() })
         await skyOnly.load(location)
         precondition(skyOnly.hasLiveSky && !skyOnly.hasLiveForecast && !skyOnly.isLive)
         precondition(!skyOnly.isScoreAvailable && skyOnly.forecastDays[0].summaryLabel.contains("unavailable"))
         precondition(skyOnly.errorMessage != nil && !skyOnly.forecastDays.isEmpty)
-        let scoreOnly = ServerViewModel(predictionLoader: { _ in prediction() }, timelineLoader: { _ in throw Failure.offline })
+        let scoreOnly = ServerViewModel(now: { fixedNow }, predictionLoader: { _ in prediction() }, timelineLoader: { _ in throw Failure.offline })
         await scoreOnly.load(location)
         precondition(!scoreOnly.hasLiveSky && scoreOnly.hasLiveForecast && !scoreOnly.isLive)
         precondition(scoreOnly.forecastDays[0].firstLight == "—" && scoreOnly.forecastDays[0].qualityScore > 0)
-        precondition(scoreOnly.statusText == "Live score · sky unavailable")
+        precondition(scoreOnly.hasLiveForecast && !scoreOnly.hasLiveSky)
         precondition(!scoreOnly.isAvailable(.sunrise))
-        let polar = ServerViewModel(predictionLoader: { _ in throw Failure.offline }, timelineLoader: { _ in timeline(polar: true) })
+        let polar = ServerViewModel(now: { fixedNow }, predictionLoader: { _ in throw Failure.offline }, timelineLoader: { _ in timeline(polar: true) })
         await polar.load(location)
         precondition(polar.selectedMoment == (nowIsInLoadedDay ? .now : .daylight) && polar.isAvailable(.daylight))
         precondition(!polar.isAvailable(.sunrise) && polar.forecastDays[0].sunrise == "—")
@@ -138,7 +144,34 @@ struct ModelRegression {
         await older.value
         precondition(race.coordinates == newer && !race.hasLiveSky && !race.hasLiveForecast)
         precondition(race.forecastDays.isEmpty && race.errorMessage != nil)
-        precondition(!race.isLoading && race.statusText == "Forecast unavailable")
-        print("PASS: parser, interpolation/defaults, timezone/date, coordinates, milestones, event selection, API partial failures and stale-response isolation")
+        precondition(!race.isLoading && race.errorMessage != nil)
+
+        var simulatedNow = utc.date(from: "2026-09-25T03:00:00Z")!
+        var refreshCalls = 0
+        let refreshing = ServerViewModel(now: { simulatedNow },
+            predictionLoader: { _ in prediction() },
+            timelineLoader: { _ in
+                refreshCalls += 1
+                if refreshCalls == 2 { throw Failure.offline }
+                return timeline()
+            })
+        await refreshing.load(location)
+        let retainedScene = refreshing.skyScene
+        simulatedNow.addTimeInterval(31 * 60)
+        await refreshing.refreshIfNeeded()
+        precondition(refreshCalls == 2 && refreshing.hasLiveSky)
+        precondition(refreshing.skyScene.provenance == .staleForecast)
+        precondition(refreshing.errorMessage != nil && !refreshing.isLive)
+        await refreshing.refreshIfNeeded()
+        precondition(refreshCalls == 2, "Automatic retries must respect the cooldown")
+        await refreshing.refreshIfNeeded(force: true)
+        precondition(refreshCalls == 3 && refreshing.skyScene.provenance == .forecast)
+        precondition(refreshing.errorMessage == nil && refreshing.hasLiveSky)
+        precondition(refreshing.skyScene.base != retainedScene.base || refreshing.selectedMoment == .now)
+        simulatedNow = utc.date(from: "2026-09-25T15:05:00Z")!
+        await refreshing.refreshIfNeeded()
+        precondition(!refreshing.hasLiveSky && refreshing.skyScene == .fallback,
+                     "The previous local day must be cleared at midnight")
+        print("PASS: parser, interpolation/defaults, timezone/date, coordinates, milestones, event selection, partial failures, refresh/staleness and stale-response isolation")
     }
 }

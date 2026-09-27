@@ -24,7 +24,7 @@ export class OpenMeteoWeatherProvider implements WeatherProvider {
             : String(input.location.altitudeMeters),
         timezone: input.timezoneId,
         hourly:
-          "cloud_cover,cloud_cover_low,cloud_cover_mid,cloud_cover_high,visibility,relative_humidity_2m,dew_point_2m,precipitation,uv_index",
+          "cloud_cover,cloud_cover_low,cloud_cover_mid,cloud_cover_high,visibility,relative_humidity_2m,dew_point_2m,precipitation,uv_index,direct_normal_irradiance_instant,shortwave_radiation_instant,diffuse_radiation_instant",
         forecast_days: "7",
       },
     );
@@ -50,9 +50,22 @@ export class OpenMeteoWeatherProvider implements WeatherProvider {
         dewPointCelsius: hourly.dew_point_2m?.[index] ?? null,
         precipitationMillimeters: hourly.precipitation?.[index] ?? null,
         uvIndex: hourly.uv_index?.[index] ?? null,
+        solarRadiation: {
+          sampling: "instant" as const,
+          directNormalWm2: radiationAt(hourly.direct_normal_irradiance_instant, response.hourly_units?.direct_normal_irradiance_instant, index),
+          globalHorizontalWm2: radiationAt(hourly.shortwave_radiation_instant, response.hourly_units?.shortwave_radiation_instant, index),
+          diffuseHorizontalWm2: radiationAt(hourly.diffuse_radiation_instant, response.hourly_units?.diffuse_radiation_instant, index),
+        },
       }))
       .filter((sample) => isLocalIsoWithinRange(sample.timeIso, input.range));
   }
+}
+
+function radiationAt(values: Array<number | null> | undefined, unit: string | undefined, index: number): number | null {
+  const value: unknown = values?.[index];
+  // Open-Meteo reports instantaneous radiation in watts per square metre.
+  if (unit !== "W/m²" && unit !== "W/m2") return null;
+  return typeof value === "number" && Number.isFinite(value) && value >= 0 ? value : null;
 }
 
 function normalizeLocalIso(value: string): string {

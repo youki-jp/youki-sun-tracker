@@ -1,0 +1,321 @@
+{
+  "synthetic": true,
+  "oldServer": {
+    "location": {
+      "latitude": 35,
+      "longitude": 139,
+      "altitudeMeters": null,
+      "timezoneId": "Asia/Tokyo"
+    },
+    "targetDateIso": "2026-09-25",
+    "generatedAtIso": "2026-09-25T00:00:00Z",
+    "milestones": {
+      "astronomicalDawnIso": null,
+      "nauticalDawnIso": null,
+      "civilDawnIso": null,
+      "goldenHourStartIso": null,
+      "sunriseIso": "2026-09-25T06:00:00",
+      "goldenHourEndIso": null,
+      "goldenHourPmStartIso": null,
+      "sunsetIso": "2026-09-25T18:00:00",
+      "goldenHourPmEndIso": null,
+      "civilDuskIso": null,
+      "nauticalDuskIso": null,
+      "astronomicalDuskIso": null,
+      "solarNoonIso": "2026-09-25T12:00:00",
+      "daylightMinutes": 720,
+      "maxElevationDegrees": 55,
+      "minElevationDegrees": -55
+    },
+    "solar": [
+      {
+        "timeIso": "2026-09-25T05:30:00",
+        "elevationDegrees": -3,
+        "azimuthDegrees": 90,
+        "isRising": true,
+        "phase": "goldenHourAm"
+      },
+      {
+        "timeIso": "2026-09-25T06:00:00",
+        "elevationDegrees": -0.267,
+        "azimuthDegrees": 90,
+        "isRising": true,
+        "phase": "goldenHourAm"
+      },
+      {
+        "timeIso": "2026-09-25T12:00:00",
+        "elevationDegrees": 55,
+        "azimuthDegrees": 180,
+        "isRising": false,
+        "phase": "day"
+      },
+      {
+        "timeIso": "2026-09-25T18:00:00",
+        "elevationDegrees": -0.267,
+        "azimuthDegrees": 270,
+        "isRising": false,
+        "phase": "goldenHourPm"
+      },
+      {
+        "timeIso": "2026-09-25T18:30:00",
+        "elevationDegrees": -3,
+        "azimuthDegrees": 270,
+        "isRising": false,
+        "phase": "goldenHourPm"
+      }
+    ],
+    "weather": [
+      {
+        "timeIso": "2026-09-25T05:30:00",
+        "cloudCover": {
+          "totalPct": 45,
+          "lowPct": 12,
+          "midPct": 25,
+          "highPct": 48
+        },
+        "visibilityMeters": 24000,
+        "relativeHumidityPct": 65,
+        "dewPointCelsius": null,
+        "precipitationMillimeters": 0,
+        "uvIndex": 2
+      },
+      {
+        "timeIso": "2026-09-25T06:00:00",
+        "cloudCover": {
+          "totalPct": 45,
+          "lowPct": 12,
+          "midPct": 25,
+          "highPct": 48
+        },
+        "visibilityMeters": 24000,
+        "relativeHumidityPct": 65,
+        "dewPointCelsius": null,
+        "precipitationMillimeters": 0,
+        "uvIndex": 2
+      },
+      {
+        "timeIso": "2026-09-25T12:00:00",
+        "cloudCover": {
+          "totalPct": 3,
+          "lowPct": 0,
+          "midPct": 0,
+          "highPct": 3
+        },
+        "visibilityMeters": 24000,
+        "relativeHumidityPct": 65,
+        "dewPointCelsius": null,
+        "precipitationMillimeters": 0,
+        "uvIndex": 2
+      },
+      {
+        "timeIso": "2026-09-25T18:00:00",
+        "cloudCover": {
+          "totalPct": 45,
+          "lowPct": 12,
+          "midPct": 25,
+          "highPct": 48
+        },
+        "visibilityMeters": 24000,
+        "relativeHumidityPct": 65,
+        "dewPointCelsius": null,
+        "precipitationMillimeters": 0,
+        "uvIndex": 2
+      },
+      {
+        "timeIso": "2026-09-25T18:30:00",
+        "cloudCover": {
+          "totalPct": 45,
+          "lowPct": 12,
+          "midPct": 25,
+          "highPct": 48
+        },
+        "visibilityMeters": 24000,
+        "relativeHumidityPct": 65,
+        "dewPointCelsius": null,
+        "precipitationMillimeters": 0,
+        "uvIndex": 2
+      }
+    ],
+    "airQuality": [],
+    "summary": {
+      "sunriseLabel": null,
+      "sunriseScore": null,
+      "sunsetLabel": null,
+      "sunsetScore": null
+    }
+  },
+  "enrichedServer": {
+    "location": {
+      "latitude": 35,
+      "longitude": 139,
+      "altitudeMeters": null,
+      "timezoneId": "Asia/Tokyo"
+    },
+    "targetDateIso": "2026-09-25",
+    "generatedAtIso": "2026-09-25T00:00:00Z",
+    "milestones": {
+      "astronomicalDawnIso": null,
+      "nauticalDawnIso": null,
+      "civilDawnIso": null,
+      "goldenHourStartIso": null,
+      "sunriseIso": "2026-09-25T06:00:00",
+      "goldenHourEndIso": null,
+      "goldenHourPmStartIso": null,
+      "sunsetIso": "2026-09-25T18:00:00",
+      "goldenHourPmEndIso": null,
+      "civilDuskIso": null,
+      "nauticalDuskIso": null,
+      "astronomicalDuskIso": null,
+      "solarNoonIso": "2026-09-25T12:00:00",
+      "daylightMinutes": 720,
+      "maxElevationDegrees": 55,
+      "minElevationDegrees": -55
+    },
+    "solar": [
+      {
+        "timeIso": "2026-09-25T05:30:00",
+        "elevationDegrees": -3,
+        "azimuthDegrees": 90,
+        "isRising": true,
+        "phase": "goldenHourAm"
+      },
+      {
+        "timeIso": "2026-09-25T06:00:00",
+        "elevationDegrees": -0.267,
+        "azimuthDegrees": 90,
+        "isRising": true,
+        "phase": "goldenHourAm"
+      },
+      {
+        "timeIso": "2026-09-25T12:00:00",
+        "elevationDegrees": 55,
+        "azimuthDegrees": 180,
+        "isRising": false,
+        "phase": "day"
+      },
+      {
+        "timeIso": "2026-09-25T18:00:00",
+        "elevationDegrees": -0.267,
+        "azimuthDegrees": 270,
+        "isRising": false,
+        "phase": "goldenHourPm"
+      },
+      {
+        "timeIso": "2026-09-25T18:30:00",
+        "elevationDegrees": -3,
+        "azimuthDegrees": 270,
+        "isRising": false,
+        "phase": "goldenHourPm"
+      }
+    ],
+    "weather": [
+      {
+        "timeIso": "2026-09-25T05:30:00",
+        "cloudCover": {
+          "totalPct": 45,
+          "lowPct": 12,
+          "midPct": 25,
+          "highPct": 48
+        },
+        "visibilityMeters": 24000,
+        "relativeHumidityPct": 65,
+        "dewPointCelsius": null,
+        "precipitationMillimeters": 0,
+        "uvIndex": 2,
+        "solarRadiation": {
+          "sampling": "instant",
+          "directNormalWm2": 0,
+          "globalHorizontalWm2": 120,
+          "diffuseHorizontalWm2": 70
+        }
+      },
+      {
+        "timeIso": "2026-09-25T06:00:00",
+        "cloudCover": {
+          "totalPct": 45,
+          "lowPct": 12,
+          "midPct": 25,
+          "highPct": 48
+        },
+        "visibilityMeters": 24000,
+        "relativeHumidityPct": 65,
+        "dewPointCelsius": null,
+        "precipitationMillimeters": 0,
+        "uvIndex": 2,
+        "solarRadiation": {
+          "sampling": "instant",
+          "directNormalWm2": 0,
+          "globalHorizontalWm2": 120,
+          "diffuseHorizontalWm2": 70
+        }
+      },
+      {
+        "timeIso": "2026-09-25T12:00:00",
+        "cloudCover": {
+          "totalPct": 3,
+          "lowPct": 0,
+          "midPct": 0,
+          "highPct": 3
+        },
+        "visibilityMeters": 24000,
+        "relativeHumidityPct": 65,
+        "dewPointCelsius": null,
+        "precipitationMillimeters": 0,
+        "uvIndex": 2,
+        "solarRadiation": {
+          "sampling": "instant",
+          "directNormalWm2": 700,
+          "globalHorizontalWm2": 700,
+          "diffuseHorizontalWm2": 100
+        }
+      },
+      {
+        "timeIso": "2026-09-25T18:00:00",
+        "cloudCover": {
+          "totalPct": 45,
+          "lowPct": 12,
+          "midPct": 25,
+          "highPct": 48
+        },
+        "visibilityMeters": 24000,
+        "relativeHumidityPct": 65,
+        "dewPointCelsius": null,
+        "precipitationMillimeters": 0,
+        "uvIndex": 2,
+        "solarRadiation": {
+          "sampling": "instant",
+          "directNormalWm2": 0,
+          "globalHorizontalWm2": 120,
+          "diffuseHorizontalWm2": 70
+        }
+      },
+      {
+        "timeIso": "2026-09-25T18:30:00",
+        "cloudCover": {
+          "totalPct": 45,
+          "lowPct": 12,
+          "midPct": 25,
+          "highPct": 48
+        },
+        "visibilityMeters": 24000,
+        "relativeHumidityPct": 65,
+        "dewPointCelsius": null,
+        "precipitationMillimeters": 0,
+        "uvIndex": 2,
+        "solarRadiation": {
+          "sampling": "instant",
+          "directNormalWm2": 0,
+          "globalHorizontalWm2": 120,
+          "diffuseHorizontalWm2": 70
+        }
+      }
+    ],
+    "airQuality": [],
+    "summary": {
+      "sunriseLabel": null,
+      "sunriseScore": null,
+      "sunsetLabel": null,
+      "sunsetScore": null
+    }
+  }
+}

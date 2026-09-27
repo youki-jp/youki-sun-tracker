@@ -76,6 +76,16 @@ struct SkyDayTimelineResponse: Decodable {
         let dewPointCelsius: Double?
         let precipitationMillimeters: Double?
         let uvIndex: Double?
+        var solarRadiation: SolarRadiation? = nil
+
+        struct SolarRadiation: Decodable {
+            let sampling: String
+            let directNormalWm2: Double?
+            let globalHorizontalWm2: Double?
+            let diffuseHorizontalWm2: Double?
+
+            var isInstant: Bool { sampling == "instant" }
+        }
 
         struct CloudCover: Decodable {
             let totalPct: Double?

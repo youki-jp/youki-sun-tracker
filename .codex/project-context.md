@@ -8,7 +8,7 @@ Build Youki, an iOS experience that helps a user decide whether an upcoming sunr
 
 ```text
 iOS SwiftUI prototype
-  -> future Swift API client and CoreLocation integration
+  -> Swift API client and CoreLocation integration
       -> TypeScript Bun/Hono API
           -> request validation
           -> PredictSkyColorService
@@ -22,7 +22,7 @@ iOS SwiftUI prototype
           -> prediction response
 ```
 
-The backend architecture is implemented. The iOS-to-backend integration is not.
+The backend architecture and live iOS-to-backend integration are implemented. The app currently loads one live day for the timeline and prediction surfaces.
 
 ## Backend Boundaries
 
@@ -36,6 +36,7 @@ The backend architecture is implemented. The iOS-to-backend integration is not.
 - twilight phase
 - solar event windows and samples
 - weather samples and layered cloud cover
+- optional instantaneous solar radiation (direct-normal, global-horizontal, diffuse-horizontal W/m²)
 - air-quality samples
 - sky-color contexts, requests, predictions, and API response
 
@@ -78,7 +79,7 @@ It produces a score from 0 to 100, a label, a primary estimated color, secondary
 
 ## Frontend Boundaries
 
-The SwiftUI app is a presentation prototype. Keep temporary sample data in `PrototypeModels.swift` until the real data path is ready. Do not place network requests, CoreLocation permissions, or heuristic scoring directly inside view bodies.
+The SwiftUI app is a presentation prototype with a live backend path. Keep temporary sample data in `PrototypeModels.swift` for fallback and previews. Do not place network requests, CoreLocation permissions, or heuristic scoring directly inside view bodies. `SkyScene` composes the stable `SkyAppearance` gradient with lighting/cloud descriptors; its Foundation-only sampler and generator have standalone regression runners. Sunlight/clouds remain an illustrative forecast rather than exact cloud geometry.
 
 The Xcode project uses explicit `PBXFileReference`, `PBXBuildFile`, group, and source-phase entries. A new Swift file is not compiled until it is added to the project file.
 
