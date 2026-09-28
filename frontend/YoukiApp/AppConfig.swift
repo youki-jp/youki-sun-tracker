@@ -2,7 +2,11 @@ import Foundation
 
 enum AppConfig {
     static let environmentKey = "BACKEND_URL"
+    #if DEBUG
     static let defaultServerURLString = "http://localhost:3000"
+    #else
+    static let defaultServerURLString = "https://youki-server-2idly.ondigitalocean.app"
+    #endif
 
     static var serverURL: URL {
         let configuredValue = ProcessInfo.processInfo.environment[environmentKey]?
@@ -10,7 +14,8 @@ enum AppConfig {
 
         if let configuredValue,
            !configuredValue.isEmpty,
-           let url = URL(string: configuredValue) {
+           let url = URL(string: configuredValue),
+           (url.scheme == "https" || (url.scheme == "http" && url.host == "localhost")) {
             return url
         }
 

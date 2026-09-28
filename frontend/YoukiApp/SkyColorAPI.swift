@@ -89,6 +89,7 @@ enum SkyColorAPIError: LocalizedError {
     }
 }
 
+@MainActor
 struct SkyColorAPIClient {
     let baseURL: URL
 
@@ -113,7 +114,7 @@ struct SkyColorAPIClient {
             )
         )
 
-        let (data, response) = try await URLSession.shared.data(for: request)
+        let (data, response) = try await AuthSession.shared.send(request)
 
         guard let httpResponse = response as? HTTPURLResponse else {
             throw SkyColorAPIError.invalidResponse

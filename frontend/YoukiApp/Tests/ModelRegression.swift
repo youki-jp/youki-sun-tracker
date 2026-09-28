@@ -93,7 +93,7 @@ struct ModelRegression {
         enum Failure: Error { case offline }
         let location = ForecastCoordinates(latitude: 35, longitude: 139)!
         let fixedNow = utc.date(from: "2026-09-25T03:00:00Z")!
-        let live = ServerViewModel(now: { fixedNow }, predictionLoader: { _ in prediction() }, timelineLoader: { _ in timeline() })
+        let live = ServerViewModel(requiresAuthentication: false, now: { fixedNow }, predictionLoader: { _ in prediction() }, timelineLoader: { _ in timeline() })
         precondition(live.isLoading && live.forecastDays.isEmpty && !live.hasLiveSky && !live.hasLiveForecast)
         precondition(live.isLoading && !live.isScoreAvailable)
         await live.load(location)
@@ -107,25 +107,25 @@ struct ModelRegression {
         precondition(live.forecastDays[0].heroTime == "18:00")
         precondition(live.forecastDays[0].daylight == "12:00")
 
-        let skyOnly = ServerViewModel(now: { fixedNow }, predictionLoader: { _ in throw Failure.offline }, timelineLoader: { _ in timeline() })
+        let skyOnly = ServerViewModel(requiresAuthentication: false, now: { fixedNow }, predictionLoader: { _ in throw Failure.offline }, timelineLoader: { _ in timeline() })
         await skyOnly.load(location)
         precondition(skyOnly.hasLiveSky && !skyOnly.hasLiveForecast && !skyOnly.isLive)
         precondition(!skyOnly.isScoreAvailable && skyOnly.forecastDays[0].summaryLabel.contains("unavailable"))
         precondition(skyOnly.errorMessage != nil && !skyOnly.forecastDays.isEmpty)
-        let scoreOnly = ServerViewModel(now: { fixedNow }, predictionLoader: { _ in prediction() }, timelineLoader: { _ in throw Failure.offline })
+        let scoreOnly = ServerViewModel(requiresAuthentication: false, now: { fixedNow }, predictionLoader: { _ in prediction() }, timelineLoader: { _ in throw Failure.offline })
         await scoreOnly.load(location)
         precondition(!scoreOnly.hasLiveSky && scoreOnly.hasLiveForecast && !scoreOnly.isLive)
         precondition(scoreOnly.forecastDays[0].firstLight == "—" && scoreOnly.forecastDays[0].qualityScore > 0)
         precondition(scoreOnly.hasLiveForecast && !scoreOnly.hasLiveSky)
         precondition(!scoreOnly.isAvailable(.sunrise))
-        let polar = ServerViewModel(now: { fixedNow }, predictionLoader: { _ in throw Failure.offline }, timelineLoader: { _ in timeline(polar: true) })
+        let polar = ServerViewModel(requiresAuthentication: false, now: { fixedNow }, predictionLoader: { _ in throw Failure.offline }, timelineLoader: { _ in timeline(polar: true) })
         await polar.load(location)
         precondition(polar.selectedMoment == (nowIsInLoadedDay ? .now : .daylight) && polar.isAvailable(.daylight))
         precondition(!polar.isAvailable(.sunrise) && polar.forecastDays[0].sunrise == "—")
         polar.select(.sunrise)
         precondition(polar.selectedMoment == (nowIsInLoadedDay ? .now : .daylight))
 
-        let race = ServerViewModel(predictionLoader: { coordinate in
+        let race = ServerViewModel(requiresAuthentication: false, predictionLoader: { coordinate in
             if coordinate.latitude == 35 { try await Task.sleep(for: .milliseconds(100)) }
             throw Failure.offline
         }, timelineLoader: { coordinate in
@@ -148,7 +148,7 @@ struct ModelRegression {
 
         var simulatedNow = utc.date(from: "2026-09-25T03:00:00Z")!
         var refreshCalls = 0
-        let refreshing = ServerViewModel(now: { simulatedNow },
+        let refreshing = ServerViewModel(requiresAuthentication: false, now: { simulatedNow },
             predictionLoader: { _ in prediction() },
             timelineLoader: { _ in
                 refreshCalls += 1

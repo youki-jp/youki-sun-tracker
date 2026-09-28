@@ -1,13 +1,15 @@
 import SwiftUI
+import AuthenticationServices
 
 struct ContentView: View {
     @StateObject var serverViewModel = ServerViewModel()
+    @StateObject var authSession = AuthSession.shared
     @State var selectedDayID = "today"
     @State var isSkyExpanded = false
     @State var activeSheet: ActiveSheet?
     @StateObject var alarmModel = GoldenHourAlarmViewModel()
     @State var sunsetAlertEnabled = false
-    @State var selectedPlan: SubscriptionPlan = .yearly
+    @State var showAccountScreen = false
     @State var showCalendarInfo = false
     @State var manualLatitude = ""
     @State var manualLongitude = ""
@@ -149,8 +151,7 @@ struct ContentView: View {
                         .presentationDragIndicator(.visible)
                 case .settings:
                     settingsSheet
-                        .presentationDetents([.height(420)])
-                        .presentationDragIndicator(.visible)
+                        .presentationDetents([.height(500)])
                 case .locations:
                     locationsSheet
                         .presentationDetents([.large])
@@ -161,13 +162,23 @@ struct ContentView: View {
                         .presentationDragIndicator(.visible)
                 }
             }
+            .fullScreenCover(isPresented: $showAccountScreen) {
+                AccountScreen(authSession: authSession, appTheme: appTheme) {
+                    showAccountScreen = false
+                }
+            }
         }
         .preferredColorScheme(appTheme.colorScheme)
         .onChange(of: serverViewModel.isLoading) { _, loading in
             if loading { isSkyExpanded = false }
         }
+        .onChange(of: authSession.isAuthenticated) { _, signedIn in
+            if signedIn { Task { await serverViewModel.loadForecast() } }
+            else { serverViewModel.showSample() }
+        }
         .onChange(of: scenePhase) { _, phase in
             serverViewModel.setForeground(phase == .active)
+            if phase == .active { Task { await authSession.refreshAccount() } }
             if phase == .active { Task { await alarmModel.reconcile() } }
         }
         .task {
@@ -178,8 +189,12 @@ struct ContentView: View {
                 return
             }
             // UI audits enter explicit coordinates instead of depending on simulator GPS.
-            if ProcessInfo.processInfo.arguments.contains("-uiAudit") { return }
+            if ProcessInfo.processInfo.arguments.contains("-uiAudit") {
+                serverViewModel.showSample()
+                return
+            }
             #endif
+            await authSession.refreshAccount()
             await serverViewModel.loadForecast()
         }
     }
@@ -233,8 +248,9 @@ struct ContentView: View {
                         .padding(.top, 12)
                         .accessibilityIdentifier("forecastLoadingIndicator")
                 } else if !serverViewModel.isLive && selectedDay != nil {
-                    Button("Retry") {
-                        Task { await serverViewModel.loadForecast() }
+                    Button(authSession.isAuthenticated ? "Retry" : "Sign in for live sky") {
+                        if authSession.isAuthenticated { Task { await serverViewModel.loadForecast() } }
+                        else { showAccountScreen = true }
                     }
                     .font(.system(size: 11, weight: .bold, design: .rounded))
                     .accessibilityIdentifier("retryForecastButton")

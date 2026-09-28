@@ -18,6 +18,8 @@
 		A1000000000000000000000A /* SkyBackgroundView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1000000000000000000000A /* SkyBackgroundView.swift */; };
 		A1000000000000000000000B /* Color+Hex.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1000000000000000000000B /* Color+Hex.swift */; };
 		A1000000000000000000000C /* SkyColorAPI.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1000000000000000000000C /* SkyColorAPI.swift */; };
+		A1000000000000000000001D /* AuthSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1000000000000000000001D /* AuthSession.swift */; };
+		A1000000000000000000001E /* AccountScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1000000000000000000001E /* AccountScreen.swift */; };
 		A1000000000000000000000D /* LocationManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1000000000000000000000D /* LocationManager.swift */; };
 		A1000000000000000000000E /* ForecastMapper.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1000000000000000000000E /* ForecastMapper.swift */; };
 		A1000000000000000000000F /* SkyDayTimelineAPI.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1000000000000000000000F /* SkyDayTimelineAPI.swift */; };
@@ -59,6 +61,8 @@
 		B1000000000000000000000A /* SkyBackgroundView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SkyBackgroundView.swift; sourceTree = "<group>"; };
 		B1000000000000000000000B /* Color+Hex.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Color+Hex.swift"; sourceTree = "<group>"; };
 		B1000000000000000000000C /* SkyColorAPI.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SkyColorAPI.swift; sourceTree = "<group>"; };
+		B1000000000000000000001D /* AuthSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthSession.swift; sourceTree = "<group>"; };
+		B1000000000000000000001E /* AccountScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AccountScreen.swift; sourceTree = "<group>"; };
 		B1000000000000000000000D /* LocationManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocationManager.swift; sourceTree = "<group>"; };
 		B1000000000000000000000E /* ForecastMapper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ForecastMapper.swift; sourceTree = "<group>"; };
 		B1000000000000000000000F /* SkyDayTimelineAPI.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SkyDayTimelineAPI.swift; sourceTree = "<group>"; };
@@ -118,6 +122,8 @@
 				B1000000000000000000000A /* SkyBackgroundView.swift */,
 				B1000000000000000000000B /* Color+Hex.swift */,
 				B1000000000000000000000C /* SkyColorAPI.swift */,
+				B1000000000000000000001D /* AuthSession.swift */,
+				B1000000000000000000001E /* AccountScreen.swift */,
 				B1000000000000000000000D /* LocationManager.swift */,
 				B1000000000000000000000E /* ForecastMapper.swift */,
 				B1000000000000000000000F /* SkyDayTimelineAPI.swift */,
@@ -255,6 +261,8 @@
 				A1000000000000000000000A /* SkyBackgroundView.swift in Sources */,
 				A1000000000000000000000B /* Color+Hex.swift in Sources */,
 				A1000000000000000000000C /* SkyColorAPI.swift in Sources */,
+				A1000000000000000000001D /* AuthSession.swift in Sources */,
+				A1000000000000000000001E /* AccountScreen.swift in Sources */,
 				A1000000000000000000000D /* LocationManager.swift in Sources */,
 				A1000000000000000000000E /* ForecastMapper.swift in Sources */,
 				A1000000000000000000000F /* SkyDayTimelineAPI.swift in Sources */,
@@ -343,6 +351,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_STYLE = Automatic;
+				CODE_SIGN_ENTITLEMENTS = YoukiApp/YoukiApp.entitlements;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = 3U39S7T8GK;
 				ENABLE_PREVIEWS = YES;
@@ -368,6 +377,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_STYLE = Automatic;
+				CODE_SIGN_ENTITLEMENTS = YoukiApp/YoukiApp.entitlements;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = 3U39S7T8GK;
 				ENABLE_PREVIEWS = YES;

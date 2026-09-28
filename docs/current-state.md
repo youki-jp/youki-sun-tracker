@@ -2,6 +2,8 @@
 
 Updated: 2026-09-27
 
+Auth update (2026-09-28): source now includes Sign in with Apple, SQLite-backed Youki sessions and Free/Pro entitlements, authenticated forecast routes, and shared quota counters. Drizzle manages SQLite migrations. This has not been deployed or verified end-to-end against live Apple services. See [auth implementation](auth-implementation.md) for the authoritative auth status. Older statements below describe the previous prototype snapshot.
+
 ## Product
 
 Youki is a sunrise and sunset sky-color forecast experience. The product is currently a working prototype rather than a production-ready app.

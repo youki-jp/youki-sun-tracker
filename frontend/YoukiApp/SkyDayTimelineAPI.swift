@@ -129,6 +129,7 @@ enum SkyDayTimelineAPIError: LocalizedError {
     }
 }
 
+@MainActor
 struct SkyDayTimelineAPIClient {
     let baseURL: URL
 
@@ -154,7 +155,7 @@ struct SkyDayTimelineAPIClient {
             )
         )
 
-        let (data, response) = try await URLSession.shared.data(for: request)
+        let (data, response) = try await AuthSession.shared.send(request)
 
         guard let httpResponse = response as? HTTPURLResponse else {
             throw SkyDayTimelineAPIError.invalidResponse
