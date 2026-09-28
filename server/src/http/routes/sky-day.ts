@@ -33,21 +33,25 @@ function parseTimelineRequest(payload: unknown): SkyDayTimelineRequest {
     throw new ValidationError("location is required.");
   }
 
+  const latitude = requireNumber(locationPayload.latitude, "location.latitude");
+  const longitude = requireNumber(locationPayload.longitude, "location.longitude");
+  const altitudeMeters = optionalNumber(locationPayload.altitudeMeters, "location.altitudeMeters");
+  if (latitude < -90 || latitude > 90 || longitude < -180 || longitude > 180 ||
+      (altitudeMeters !== null && (altitudeMeters < -500 || altitudeMeters > 9000))) {
+    throw new ValidationError("location is outside the supported range.");
+  }
   return {
     location: {
-      latitude: requireNumber(locationPayload.latitude, "location.latitude"),
-      longitude: requireNumber(locationPayload.longitude, "location.longitude"),
-      altitudeMeters: optionalNumber(
-        locationPayload.altitudeMeters,
-        "location.altitudeMeters",
-      ),
+      latitude,
+      longitude,
+      altitudeMeters,
     },
     targetDateIso: optionalDateString(payload.targetDateIso, "targetDateIso"),
   };
 }
 
 function requireNumber(value: unknown, fieldName: string): number {
-  if (typeof value !== "number" || Number.isNaN(value)) {
+  if (typeof value !== "number" || !Number.isFinite(value)) {
     throw new ValidationError(`${fieldName} must be a number.`);
   }
 

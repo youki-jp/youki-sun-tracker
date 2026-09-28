@@ -28,14 +28,25 @@ final class ServerViewModel: ObservableObject {
     private var currentDate = Date()
     private var clockTask: Task<Void, Never>?
     private let now: () -> Date
+    private let requiresAuthentication: Bool
     private var retrievedAt: Date?
     private var lastRefreshAttempt: Date?
     private var isRefreshing = false
     private var isForeground = true
 
     var skyAppearance: SkyAppearance { skyScene.base }
+    private var canLoadLive: Bool {
+        if !requiresAuthentication { return true }
+        if AuthSession.shared.isAuthenticated { return true }
+        #if DEBUG
+        return ProcessInfo.processInfo.arguments.contains { $0.hasPrefix("-uiSkyFixture") }
+        #else
+        return false
+        #endif
+    }
 
     init(
+        requiresAuthentication: Bool = true,
         now: @escaping () -> Date = Date.init,
         predictionLoader: @escaping (ForecastCoordinates) async throws -> SkyColorAPIResponse = { coordinates in
             #if DEBUG
@@ -58,6 +69,7 @@ final class ServerViewModel: ObservableObject {
                 altitudeMeters: coordinates.altitudeMeters)
         }
     ) {
+        self.requiresAuthentication = requiresAuthentication
         self.now = now
         self.predictionLoader = predictionLoader
         self.timelineLoader = timelineLoader
@@ -88,6 +100,10 @@ final class ServerViewModel: ObservableObject {
     }
 
     func loadForecast() async {
+        guard canLoadLive else {
+            showSample()
+            return
+        }
         if coordinates != nil && hasLiveSky {
             await refreshIfNeeded(force: true)
             return
@@ -99,7 +115,23 @@ final class ServerViewModel: ObservableObject {
         }
     }
 
+    func showSample() {
+        requestID = UUID()
+        clockTask?.cancel()
+        timeline = nil
+        predictions = nil
+        scenes = [:]
+        forecastDays = [PrototypeDay.sampleDays[0]]
+        skyScene = .fallback
+        hasLiveSky = false
+        hasLiveForecast = false
+        isLive = false
+        isLoading = false
+        errorMessage = "Sign in for your live sky. Showing a sample forecast."
+    }
+
     func loadDeviceLocation() async {
+        guard canLoadLive else { showSample(); return }
         useDeviceLocation = true
         coordinates = nil
         let id = beginRequest()
@@ -121,6 +153,7 @@ final class ServerViewModel: ObservableObject {
     }
 
     func load(_ coordinates: ForecastCoordinates) async {
+        guard canLoadLive else { showSample(); return }
         useDeviceLocation = false
         self.coordinates = coordinates
         let id = beginRequest()
@@ -317,6 +350,7 @@ final class ServerViewModel: ObservableObject {
     }
 
     func refreshIfNeeded(force: Bool = false) async {
+        guard canLoadLive else { return }
         guard let coordinates, let timeline, !isRefreshing, isForeground else { return }
         let date = now()
         guard let localDate = Self.localDate(date, timezone: timeline.location.timezoneId) else { return }

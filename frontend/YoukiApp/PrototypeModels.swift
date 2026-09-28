@@ -46,11 +46,6 @@ enum ActiveSheet: String, Identifiable {
     var id: String { rawValue }
 }
 
-enum SubscriptionPlan {
-    case yearly
-    case monthly
-}
-
 extension SkyMoment {
     var dotColor: Color {
         switch self {

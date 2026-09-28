@@ -17,8 +17,13 @@ Start the development server:
 ```bash
 cd server
 bun install
+bun run migrate
 bun run dev
 ```
+
+The server uses a local SQLite database at `server/data/youki.sqlite` by default. `bun run migrate` applies versioned Drizzle migrations. To use another file, set `SQLITE_PATH`; production requires an absolute path on persistent storage. Startup also requires `APPLE_CLIENT_ID`, `APPLE_TEAM_ID`, `APPLE_KEY_ID`, `APPLE_PRIVATE_KEY`, and `APPLE_TOKEN_ENCRYPTION_KEY`. See the [account implementation guide](docs/auth-implementation.md).
+
+To generate a migration after editing the Drizzle schema, run `bun run migration:generate` and review its SQL. Use `bun run backup -- /absolute/path/to/backup.sqlite` to create and verify a consistent local backup.
 
 The API is available at `http://localhost:3000`.
 
@@ -38,28 +43,25 @@ Example request:
 ```bash
 curl -X POST http://localhost:3000/api/v1/sky-color/predictions \
   -H 'content-type: application/json' \
+  -H 'authorization: Bearer <youki-access-token>' \
   -d '{"location":{"latitude":35.6762,"longitude":139.6503,"altitudeMeters":40},"requestedEvents":["sunrise","sunset"]}'
 ```
 
-The service resolves the location timezone, calculates solar windows and samples, fetches weather and air quality from Open-Meteo, aligns the data, and applies the current heuristic sky color engine.
+The forecast routes require a Youki session. The service resolves the location timezone, calculates solar windows and samples, fetches weather and air quality from Open-Meteo, aligns the data, and applies the current heuristic sky color engine.
 
 ## iOS prototype
 
 Open `frontend/YoukiApp/YoukiApp.xcodeproj` in Xcode and run the `YoukiApp` scheme on an iOS Simulator or connected device. The current screen is a local UI prototype with sample Tokyo forecast data. It includes the main forecast, expanded color analysis, forecast calendar, locations, paywall, and light/dark theme previews.
 
-The SwiftUI source is organized by responsibility:
+The SwiftUI app now has Sign in with Apple and a server-backed Free/Pro account state. Signed-out users can view a sample forecast; payment is not available. The SwiftUI source is organized by responsibility:
 
 - `ContentView.swift` owns screen state and top-level composition.
 - `ForecastComponents.swift` contains the main forecast components.
 - `ForecastSheets.swift` contains modal sheet content.
 - `PrototypeModels.swift` contains temporary sample data and presentation models.
 - `SkyBackgroundView.swift` and `Color+Hex.swift` contain visual helpers.
+- `AuthSession.swift` manages sign-in, Keychain storage, and authenticated API requests.
 
-## DigitalOcean App Platform
+## Deployment
 
-For a backend deployment, point the app's source directory to `server/`.
-
-```text
-Build command: bun run build
-Run command: bun run start
-```
+The SQLite build is not ready for App Platform deployment because its local filesystem is ephemeral. The next hosting step is a single Droplet with a persistent SQLite path, HTTPS, backups, and a new CI/CD target. See the [implementation guide](docs/auth-implementation.md). The iOS release URL still points to the App Platform hostname until that cutover.

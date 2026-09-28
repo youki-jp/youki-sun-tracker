@@ -4,13 +4,18 @@ extension ContentView {
     var calendarSheet: some View {
         NavigationStack {
             VStack(alignment: .leading, spacing: 0) {
-                Text("Forecast calendar")
-                    .font(.system(size: 18, weight: .bold, design: .rounded))
-                    .padding(.bottom, 12)
+                HStack {
+                    Text("Forecast calendar")
+                        .font(.system(size: 18, weight: .bold, design: .rounded))
+                    Spacer()
+                    Button("Done") { activeSheet = nil }
+                        .accessibilityIdentifier("calendarDoneButton")
+                }
+                .padding(.bottom, 12)
 
                 ForEach(serverViewModel.forecastDays) { day in
                     Button {
-                        if day.isLocked {
+                        if day.isLocked && authSession.account?.tier != "pro" {
                             activeSheet = .paywall
                         } else {
                             selectedDayID = day.id
@@ -40,7 +45,7 @@ extension ContentView {
                                 .font(.system(size: 11, weight: .medium, design: .rounded))
                                 .foregroundStyle(inkColor.opacity(0.5))
 
-                            if day.isLocked {
+                            if day.isLocked && authSession.account?.tier != "pro" {
                                 Image(systemName: "lock")
                                     .font(.system(size: 14, weight: .semibold))
                                     .foregroundStyle(inkColor.opacity(0.55))
@@ -123,18 +128,21 @@ extension ContentView {
             }
 
             settingsRow(
-                title: "Plan",
-                subtitle: selectedPlan == .yearly ? "Youki Pro yearly" : "Youki Pro monthly"
+                title: "Account",
+                subtitle: authSession.isAuthenticated
+                    ? (authSession.account?.tier == "pro" ? "Youki Pro · lifetime" : "Free account")
+                    : "Sign in for your live sky"
             ) {
-                Button("Upgrade") {
-                    activeSheet = .paywall
+                Button(authSession.isAuthenticated ? "Manage" : "Sign in") {
+                    activeSheet = nil
+                    showAccountScreen = true
                 }
                 .font(.system(size: 12.5, weight: .bold, design: .rounded))
                 .padding(.horizontal, 16)
                 .padding(.vertical, 9)
                 .background(accentColor, in: Capsule())
                 .foregroundStyle(.white)
-                .accessibilityIdentifier("upgradeButton")
+                .accessibilityIdentifier("accountButton")
             }
 
             settingsToggleRow(
@@ -247,8 +255,13 @@ extension ContentView {
     var locationsSheet: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 18) {
-                Text("Locations")
-                    .font(.system(size: 22, weight: .bold, design: .rounded))
+                HStack {
+                    Text("Locations")
+                        .font(.system(size: 22, weight: .bold, design: .rounded))
+                    Spacer()
+                    Button("Done") { activeSheet = nil }
+                        .accessibilityIdentifier("locationsDoneButton")
+                }
 
                 Button {
                     activeSheet = nil
@@ -343,116 +356,20 @@ extension ContentView {
     }
 
     var paywallSheet: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            HStack(spacing: 8) {
-                Circle()
-                    .fill(accentColor)
-                    .frame(width: 16, height: 16)
-                    .overlay {
-                        Circle()
-                            .stroke(.white.opacity(0.6), lineWidth: 2)
-                            .padding(2)
-                    }
-                Text("Youki Pro")
-                    .font(.system(size: 20, weight: .bold, design: .rounded))
-            }
-
-            Text("Unlock a full week of sky forecasts, smart sunrise alarms, and widgets for your next glow window.")
-                .font(.system(size: 13, weight: .medium, design: .rounded))
-                .foregroundStyle(inkColor.opacity(0.58))
-                .lineSpacing(3)
-                .padding(.top, 8)
-
-            VStack(alignment: .leading, spacing: 12) {
-                paywallFeature("7-day sunrise and sunset outlook")
-                paywallFeature("Smart alarm timed to the best color window")
-                paywallFeature("Multiple saved locations")
-                paywallFeature("Home Screen widgets")
-            }
-            .padding(.top, 18)
-
-            HStack(spacing: 10) {
-                subscriptionCard(
-                    plan: .yearly,
-                    title: "Yearly",
-                    note: "Best value",
-                    isSelected: selectedPlan == .yearly
-                )
-                subscriptionCard(
-                    plan: .monthly,
-                    title: "Monthly",
-                    note: "Flexible",
-                    isSelected: selectedPlan == .monthly
-                )
-            }
-            .padding(.top, 18)
-
-            Button {
-                activeSheet = nil
-            } label: {
-                Text("Start free trial")
-                    .font(.system(size: 15, weight: .bold, design: .rounded))
-                    .foregroundStyle(.white)
-                    .frame(maxWidth: .infinity)
-                    .frame(height: 52)
-                    .background(accentColor, in: Capsule())
-            }
-            .buttonStyle(.plain)
-            .accessibilityIdentifier("startTrialButton")
-            .padding(.top, 18)
-
-            Text("Restore purchases")
-                .font(.system(size: 11.5, weight: .medium, design: .rounded))
-                .foregroundStyle(inkColor.opacity(0.55))
-                .frame(maxWidth: .infinity)
-                .padding(.top, 12)
-
+        VStack(alignment: .leading, spacing: 18) {
+            Text("Youki Pro")
+                .font(.system(size: 20, weight: .bold, design: .rounded))
+            Text("A one-time Pro upgrade is planned. Purchases are not available yet, and today's live sky and golden-hour alarms remain free.")
+                .font(.system(size: 13, design: .rounded))
+                .foregroundStyle(inkColor.opacity(0.65))
+            Button("Done") { activeSheet = nil }
+                .buttonStyle(.borderedProminent)
+                .tint(accentColor)
             Spacer()
         }
-        .padding(.horizontal, 26)
-        .padding(.top, 12)
+        .padding(26)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        .foregroundStyle(inkColor)
         .background(panelColor)
-    }
-
-    func paywallFeature(_ text: String) -> some View {
-        HStack(spacing: 10) {
-            Circle()
-                .fill(accentColor)
-                .frame(width: 6, height: 6)
-            Text(text)
-                .font(.system(size: 13, weight: .medium, design: .rounded))
-        }
-    }
-
-    func subscriptionCard(
-        plan: SubscriptionPlan,
-        title: String,
-        note: String,
-        isSelected: Bool
-    ) -> some View {
-        Button {
-            selectedPlan = plan
-        } label: {
-            VStack(alignment: .leading, spacing: 4) {
-                Text(title)
-                    .font(.system(size: 14, weight: .bold, design: .rounded))
-                Text(note)
-                    .font(.system(size: 11, weight: .semibold, design: .rounded))
-                    .foregroundStyle(isSelected ? accentColor : inkColor.opacity(0.5))
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(.horizontal, 14)
-            .padding(.vertical, 12)
-            .background(
-                RoundedRectangle(cornerRadius: 16, style: .continuous)
-                    .fill(cardColor)
-            )
-            .overlay {
-                RoundedRectangle(cornerRadius: 16, style: .continuous)
-                    .stroke(isSelected ? accentColor : inkColor.opacity(0.12), lineWidth: 1.5)
-            }
-        }
-        .buttonStyle(.plain)
-        .accessibilityIdentifier(plan == .yearly ? "yearlyPlanButton" : "monthlyPlanButton")
     }
 }

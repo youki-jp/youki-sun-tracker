@@ -2,6 +2,7 @@ import { Hono } from "hono";
 
 interface HealthRouterOptions {
   startedAtIso: string;
+  ready?: () => Promise<boolean>;
 }
 
 export function createHealthRouter(options: HealthRouterOptions) {
@@ -34,19 +35,21 @@ export function createHealthRouter(options: HealthRouterOptions) {
     );
   });
 
-  router.get("/ready", (c) => {
+  router.get("/ready", async (c) => {
+    const databaseReady = options.ready ? await options.ready() : true;
     return c.json(
       {
-        status: "ok",
+        status: databaseReady ? "ok" : "unavailable",
         service: "youki-sun-tracker-server",
         check: "readiness",
         checks: {
           routing: "ok",
+          database: databaseReady ? "ok" : "unavailable",
         },
         startedAtIso: options.startedAtIso,
         checkedAtIso: new Date().toISOString(),
       },
-      200,
+      databaseReady ? 200 : 503,
     );
   });
 

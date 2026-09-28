@@ -8,6 +8,8 @@ Open `YoukiApp/YoukiApp.xcodeproj`, select the `YoukiApp` scheme, choose an iOS 
 
 ## Current behavior
 
+The source now includes Sign in with Apple and server-backed account status. Without a session, the app displays a sample forecast and does not request live forecasts. Native sign-in requires the Apple capability and the backend/SQLite configuration in [the auth setup guide](../docs/auth-implementation.md). Debug builds pointed at a localhost backend can use four seeded Free/Pro test accounts from that guide. Payments remain deferred.
+
 The screen requests the device's location and independently loads the prediction and whole-day timeline APIs. Tap the location pill to use device location or enter latitude, longitude, and optional altitude. Coordinates are not saved. A denied or timed-out location request can be replaced with manual coordinates.
 
 - Six selectable real solar milestones: civil dawn, golden-hour start, sunrise, solar noon, afternoon golden-hour start, and sunset
@@ -19,7 +21,7 @@ The screen requests the device's location and independently loads the prediction
 - Sunset and golden PM show the sunset score, reasons, and conditions
 - Expandable sky color analysis
 - Forecast calendar with locked premium days
-- Manual locations and subscription preview sheets
+- Manual locations and a future Pro information sheet
 - Light and dark theme previews
 - Loading progress, a retry control when the forecast is incomplete, and detailed errors in Locations
 
@@ -27,7 +29,7 @@ The sample data remains as a clearly labelled fallback and for previews. Timelin
 
 `SkyGradient.swift`, `SkyScene.swift`, `SkySceneSampler.swift`, `SkySceneGenerator.swift`, and `SkyDayTimelineAPI.swift` remain Foundation-only for standalone regression verification. Local timestamps accept HH:mm or HH:mm:ss and intentionally sample at whole-minute precision, matching the HTML. Date-based sampling uses the returned timezone and rejects dates outside the loaded day. The legacy renderer uses the same nine stops, fractional cloud ellipses, and radial glow colors/positions as the reference; native/browser blur rasterization may differ.
 
-Only one live day is loaded for the forecast screen. Calendar sample days and subscriptions remain prototype UI. The alarm setup separately loads today's/tomorrow's timeline to find the next sunrise or sunset golden-hour start, subtracts the chosen lead time (default 15 minutes), and confirms the exact date/time before enabling one system alarm. It persists its UUID and reconciles with the system on launch/foreground. Changing forecast location does not move an already confirmed alarm.
+Only one live day is loaded for the forecast screen. Calendar sample days remain prototype UI; the old monthly/yearly trial mock has been removed. The alarm setup separately loads today's/tomorrow's timeline to find the next sunrise or sunset golden-hour start, subtracts the chosen lead time (default 15 minutes), and confirms the exact date/time before enabling one system alarm. It persists its UUID and reconciles with the system on launch/foreground. Changing forecast location does not move an already confirmed alarm.
 
 System alarms require iOS 26 and an app built with the iOS 26 SDK (Xcode 26+). The availability-gated AlarmKit adapter uses a fixed schedule, system sound, and Stop action. Xcode 16.4 can build the app but displays an unavailable explanation and cannot compile/verify the AlarmKit branch. No notification is silently substituted for an alarm. Real ringing, locked/closed-app behavior, and cancellation need physical iOS 26 verification. Synthetic sky fixtures cannot enable real alarms.
 
@@ -42,14 +44,14 @@ TZ=Asia/Tokyo /tmp/youki-alarm-regression
 
 DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer xcrun swiftc \
   -parse-as-library -module-cache-path /tmp/youki-alarm-planner-module-cache \
-  frontend/YoukiApp/{GoldenHourAlarm,AlarmKitScheduler,GoldenHourAlarmPlanner,SkyDayTimelineAPI}.swift \
+  frontend/YoukiApp/{AuthSession,AppConfig,GoldenHourAlarm,AlarmKitScheduler,GoldenHourAlarmPlanner,SkyDayTimelineAPI}.swift \
   frontend/YoukiApp/Tests/AlarmPlannerRegression.swift -o /tmp/youki-alarm-planner-regression
 /tmp/youki-alarm-planner-regression
 ```
 
 ## Backend URL
 
-The default backend URL is `http://localhost:3000`. To override it, add `BACKEND_URL` to the Xcode scheme environment. This default works in the iOS Simulator; a physical device needs a reachable Mac/LAN URL instead of `localhost`.
+Debug builds default to `http://localhost:3000`; release builds default to the current DigitalOcean app URL in `AppConfig.swift`. To override it, add `BACKEND_URL` to the Xcode scheme environment. This default works in the iOS Simulator; a physical device needs a reachable Mac/LAN URL instead of `localhost`.
 
 ## Regression verification
 
@@ -58,7 +60,7 @@ Run from the repository root on macOS, without booting a simulator:
 ```bash
 DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer xcrun swiftc \
   -parse-as-library -module-cache-path /tmp/youki-model-module-cache \
-  frontend/YoukiApp/{SkyGradient,SkyScene,SkySceneSampler,SkySceneGenerator,SkyDayTimelineAPI,SkyColorAPI,ServerViewModel,LocationManager,ForecastMapper,PrototypeModels,Color+Hex,AppConfig}.swift \
+  frontend/YoukiApp/{AuthSession,SkyGradient,SkyScene,SkySceneSampler,SkySceneGenerator,SkyDayTimelineAPI,SkyColorAPI,ServerViewModel,LocationManager,ForecastMapper,PrototypeModels,Color+Hex,AppConfig}.swift \
   frontend/YoukiApp/Tests/ModelRegression.swift -o /tmp/youki-model-regression
 /tmp/youki-model-regression
 ```
@@ -70,7 +72,7 @@ Run the scene model and generator regressions with:
 ```bash
 DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer xcrun swiftc \
   -parse-as-library -module-cache-path /tmp/youki-scene-module-cache \
-  frontend/YoukiApp/{SkyGradient,SkyScene,SkySceneSampler,SkySceneGenerator,SkyDayTimelineAPI,SkyColorAPI}.swift \
+  frontend/YoukiApp/{AuthSession,AppConfig,SkyGradient,SkyScene,SkySceneSampler,SkySceneGenerator,SkyDayTimelineAPI,SkyColorAPI}.swift \
   frontend/YoukiApp/Tests/SkySceneRegression.swift -o /tmp/youki-scene-regression
 /tmp/youki-scene-regression
 ```

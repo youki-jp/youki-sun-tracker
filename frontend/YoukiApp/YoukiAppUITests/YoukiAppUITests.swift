@@ -103,32 +103,34 @@ final class YoukiAppUITests: XCTestCase {
         XCTAssertFalse(app.staticTexts["forecastStatus"].exists)
         app.buttons["locationButton"].tap()
         XCTAssertFalse(app.buttons["manualLocationButton"].isEnabled)
-        app.swipeDown()
-
-        app.buttons["expandButton"].tap()
-        XCTAssertTrue(app.staticTexts["Color analysis"].waitForExistence(timeout: 2))
-        app.buttons["expandButton"].tap()
-        XCTAssertTrue(app.buttons["settingsButton"].waitForExistence(timeout: 2))
+        app.buttons["locationsDoneButton"].tap()
 
         app.buttons["calendarButton"].tap()
         XCTAssertTrue(app.staticTexts["Forecast calendar"].waitForExistence(timeout: 2))
         app.buttons["calendarInfoButton"].tap()
-        app.swipeDown()
+        app.buttons["calendarDoneButton"].tap()
 
         app.buttons["settingsButton"].tap()
         XCTAssertTrue(app.staticTexts["Settings"].waitForExistence(timeout: 2))
-        app.buttons["upgradeButton"].tap()
-        XCTAssertTrue(app.staticTexts["Youki Pro"].waitForExistence(timeout: 2))
-        app.buttons["monthlyPlanButton"].tap()
-        app.buttons["startTrialButton"].tap()
+        app.buttons["accountButton"].tap()
+        XCTAssertTrue(app.staticTexts["Your sky, every day."].waitForExistence(timeout: 2))
+        app.buttons["signInEntryLink"].tap()
+        XCTAssertTrue(app.staticTexts["Welcome back."].exists)
+        XCTAssertTrue(app.buttons["appleSignInButton"].label.contains("Sign in with Apple"))
+        app.buttons["createAccountEntryLink"].tap()
+        XCTAssertTrue(app.staticTexts["Your sky, every day."].exists)
+        XCTAssertTrue(app.buttons["appleSignInButton"].label.contains("Sign up with Apple"))
+        app.buttons["accountDoneButton"].tap()
 
         app.buttons["settingsButton"].tap()
         app.buttons["allSettingsButton"].tap()
         XCTAssertTrue(app.staticTexts["Locations"].waitForExistence(timeout: 2))
         app.buttons["useLocationButton"].tap()
+        app.buttons["expandButton"].tap()
+        XCTAssertTrue(app.staticTexts["Color analysis"].waitForExistence(timeout: 2))
     }
 
-    func testManualCoordinatesAndLiveEventSelection() throws {
+    func testManualCoordinatesStaySampleUntilSignIn() throws {
         app.launch()
         app.buttons["locationButton"].tap()
         let showSky = app.buttons["manualLocationButton"]
@@ -143,26 +145,9 @@ final class YoukiAppUITests: XCTestCase {
         latitude.typeText(XCUIKeyboardKey.delete.rawValue + XCUIKeyboardKey.delete.rawValue + "35.6762\n")
         XCTAssertTrue(showSky.isEnabled)
         showSky.tap()
-        let sky = app.otherElements["skyAppearance"]
-        let live = NSPredicate(format: "label CONTAINS %@", "forecast")
-        XCTAssertTrue(waitFor(live, element: sky, timeout: 90), "Requires live timeline data from http://localhost:3000 with Tokyo data.")
-
-        var eventTimes: [String] = []
-        for moment in ["sunrise", "daylight", "sunset"] {
-            let button = app.buttons["moment." + moment]
-            let enabled = NSPredicate(format: "isEnabled == true")
-            XCTAssertTrue(waitFor(enabled, element: button, timeout: 15), "\(moment) should be available in the live timeline.")
-            tapMoment(moment)
-            app.scrollViews.firstMatch.swipeDown()
-            let eventTime = app.staticTexts["selectedEventTime"]
-            XCTAssertTrue(eventTime.waitForExistence(timeout: 5))
-            XCTAssertTrue(button.label.contains(eventTime.label), "\(moment) should show its selected location-local milestone time.")
-            eventTimes.append(eventTime.label)
-        }
-        XCTAssertEqual(Set(eventTimes).count, 3, "Sunrise, solar noon, and sunset should select distinct timeline times.")
-        app.buttons["expandButton"].tap()
-        XCTAssertTrue(app.staticTexts["Color analysis"].waitForExistence(timeout: 2))
-        app.buttons["expandButton"].tap()
+        XCTAssertTrue(app.buttons["Sign in for live sky"].waitForExistence(timeout: 5))
+        app.buttons["Sign in for live sky"].tap()
+        XCTAssertTrue(app.staticTexts["Your sky, every day."].waitForExistence(timeout: 5))
     }
 
     private func tapMoment(_ id: String) {

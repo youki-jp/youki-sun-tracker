@@ -61,6 +61,10 @@ function parseSkyColorRequest(
     locationPayload.altitudeMeters,
     `${fieldPrefix}altitudeMeters`,
   );
+  if (latitude < -90 || latitude > 90 || longitude < -180 || longitude > 180 ||
+      (altitudeMeters !== null && (altitudeMeters < -500 || altitudeMeters > 9000))) {
+    throw new ValidationError("location is outside the supported range.");
+  }
   const targetDateIso = optionalDateString(
     payload.targetDateIso,
     "targetDateIso",
@@ -109,7 +113,7 @@ function parseRequestedEvents(value: unknown): SkyEventKind[] {
 }
 
 function requireNumber(value: unknown, fieldName: string): number {
-  if (typeof value !== "number" || Number.isNaN(value)) {
+  if (typeof value !== "number" || !Number.isFinite(value)) {
     throw new ValidationError(`${fieldName} must be a number.`);
   }
 
