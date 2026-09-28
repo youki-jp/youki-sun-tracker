@@ -57,7 +57,7 @@ The target flow is: obtain a device fix when device location is selected, decide
 | U2 | Low | Make settings controls match implemented behavior | `ContentView.swift`, `ForecastSheets.swift`, UI checks | None |
 | D1 | Low | Refresh the implementation snapshot and runnable checks | `docs/current-state.md`, `frontend/README.md`, `server/README.md` if present | After code tasks |
 
-Implementation completed on 2026-09-28. The iOS and backend source changes are in the working tree. `frontend/README.md` already described the cache/freshness behavior and runnable checks accurately, so it did not need edits; `server/README.md` does not exist. The current-state snapshot was corrected and updated. See the [implementation summary](../artifacts/2026-09-28-refactor-cleanup.md) for source links and verification results.
+Implementation completed on 2026-09-28 and committed as `a088e52` on `chore/refactor-cleanup`; [PR #15](https://github.com/youki-jp/youki-sun-tracker/pull/15) is open. `frontend/README.md` already described the cache/freshness behavior and runnable checks accurately, so it did not need edits; `server/README.md` does not exist. The current-state snapshot was corrected and updated. See the [implementation summary](../artifacts/2026-09-28-refactor-cleanup.md) for source links and verification results.
 
 ### L1 - Device location and cache lifecycle
 

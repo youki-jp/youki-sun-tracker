@@ -17,7 +17,7 @@ Same-area foreground visits can reuse current forecasts, while changed locations
 
 ### Current state
 
-Implemented in the working tree. Backend checks and the iOS simulator-target build passed. No simulator UI screenshot was captured because CoreSimulator services were unavailable.
+Implemented and committed as `a088e52` on `chore/refactor-cleanup`; [PR #15](https://github.com/youki-jp/youki-sun-tracker/pull/15) is open. Backend checks and the iOS simulator-target build passed. No simulator UI screenshot was captured because CoreSimulator services were unavailable.
 
 ### Next step
 
