@@ -30,9 +30,12 @@ final class ServerViewModel: ObservableObject {
     private let now: () -> Date
     private let requiresAuthentication: Bool
     private var retrievedAt: Date?
+    private var forecastCoordinates: ForecastCoordinates?
+    private var locationLookupID = UUID()
     private var lastRefreshAttempt: Date?
     private var isRefreshing = false
     private var isForeground = true
+    private static let sameForecastAreaRadiusMeters: CLLocationDistance = 10_000
 
     var skyAppearance: SkyAppearance { skyScene.base }
     private var canLoadLive: Bool {
@@ -105,7 +108,7 @@ final class ServerViewModel: ObservableObject {
             return
         }
         if coordinates != nil && hasLiveSky {
-            await refreshIfNeeded(force: true)
+            await refreshIfNeeded()
             return
         }
         if useDeviceLocation {
@@ -121,6 +124,7 @@ final class ServerViewModel: ObservableObject {
         timeline = nil
         predictions = nil
         scenes = [:]
+        forecastCoordinates = nil
         forecastDays = [PrototypeDay.sampleDays[0]]
         skyScene = .fallback
         hasLiveSky = false
@@ -133,22 +137,33 @@ final class ServerViewModel: ObservableObject {
     func loadDeviceLocation() async {
         guard canLoadLive else { showSample(); return }
         useDeviceLocation = true
-        coordinates = nil
-        let id = beginRequest()
+        locationLookupID = UUID()
+        let lookupID = locationLookupID
         do {
             let location = try await locationManager.currentLocation()
-            guard requestID == id else { return }
+            guard locationLookupID == lookupID else { return }
             guard let resolved = ForecastCoordinates(
                 latitude: location.coordinate.latitude, longitude: location.coordinate.longitude,
                 altitudeMeters: location.verticalAccuracy >= 0 ? location.altitude : nil
             ) else { throw LocationProviderError.unavailable }
             coordinates = resolved
-            locationName = "Current location"
+            if hasLiveSky, let forecastCoordinates,
+               Self.distance(from: resolved, to: forecastCoordinates) <= Self.sameForecastAreaRadiusMeters {
+                resolveLocationName(for: location, requestID: requestID, fallback: "Current location")
+                await refreshIfNeeded()
+                return
+            }
+            let id = beginRequest()
             resolveLocationName(for: location, requestID: id, fallback: "Current location")
             await fetch(resolved, id: id)
         } catch {
-            guard requestID == id else { return }
-            finishFailure(error.localizedDescription)
+            guard locationLookupID == lookupID else { return }
+            if hasLiveSky {
+                errorMessage = error.localizedDescription
+                rebuildPresentation()
+            } else {
+                finishFailure(error.localizedDescription)
+            }
         }
     }
 
@@ -224,6 +239,7 @@ final class ServerViewModel: ObservableObject {
                 }
                 if !scenes.isEmpty {
                     timeline = value
+                    forecastCoordinates = coordinates
                     hasLiveSky = true
                     retrievedAt = now()
                 } else {
@@ -415,6 +431,11 @@ final class ServerViewModel: ObservableObject {
         formatter.timeZone = timezone
         formatter.dateFormat = "yyyy-MM-dd"
         return formatter.string(from: date)
+    }
+
+    private static func distance(from first: ForecastCoordinates, to second: ForecastCoordinates) -> CLLocationDistance {
+        CLLocation(latitude: first.latitude, longitude: first.longitude).distance(
+            from: CLLocation(latitude: second.latitude, longitude: second.longitude))
     }
 
     private static func localHour(_ date: Date, timezone: String) -> Int? {

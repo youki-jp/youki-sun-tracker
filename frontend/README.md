@@ -10,7 +10,7 @@ Open `YoukiApp/YoukiApp.xcodeproj`, select the `YoukiApp` scheme, choose an iOS 
 
 The source now includes Sign in with Apple and server-backed account status. Without a session, the app displays a sample forecast and does not request live forecasts. Native sign-in requires the Apple capability and the backend/SQLite configuration in [the auth setup guide](../docs/auth-implementation.md). Debug builds pointed at a localhost backend can use four seeded Free/Pro test accounts from that guide. Payments remain deferred.
 
-The screen requests the device's location and independently loads the prediction and whole-day timeline APIs. Tap the location pill to use device location or enter latitude, longitude, and optional altitude. Coordinates are not saved. A denied or timed-out location request can be replaced with manual coordinates.
+The screen requests the device's location and independently loads the prediction and whole-day timeline APIs. Tap the location pill to use device location or enter latitude, longitude, and optional altitude. Coordinates are not saved. Device fixes within 10 km of the location used for the loaded forecast reuse that forecast, subject to the existing 30-minute and local-day refresh rules; fixes farther away load a new forecast. A denied or timed-out location request can be replaced with manual coordinates.
 
 - Six selectable real solar milestones: civil dawn, golden-hour start, sunrise, solar noon, afternoon golden-hour start, and sunset
 - One selected timestamp drives the native sky and five-color ramp, including expanded analysis; sunrise is selected first when available

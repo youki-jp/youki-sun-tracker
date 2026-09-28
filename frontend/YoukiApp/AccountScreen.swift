@@ -205,53 +205,70 @@ struct AccountScreen: View {
     }
 
     private var membershipCard: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            HStack(spacing: 8) {
-                Image(systemName: authSession.account?.tier == "pro" ? "sparkles" : "sun.max.fill")
-                Text(authSession.account?.tier == "pro" ? "YOUKI PRO" : "YOUKI FREE")
-                    .tracking(1.2)
-                Spacer()
-                if authSession.account?.tier == "pro" {
-                    Text("ACTIVE")
-                        .font(.system(size: 9, weight: .bold, design: .rounded))
-                        .tracking(0.8)
-                        .padding(.horizontal, 9)
-                        .padding(.vertical, 6)
-                        .background(accentColor.opacity(0.16), in: Capsule())
-                        .accessibilityIdentifier("proMembershipStatus")
-                }
-            }
-            .font(.system(size: 11, weight: .bold, design: .rounded))
-            .foregroundStyle(accentColor)
+        let isPro = authSession.account?.tier == "pro"
+        return ZStack(alignment: .topTrailing) {
+            LinearGradient(
+                colors: [Color(hex: "#34394E"), Color(hex: "#70566A"), Color(hex: "#C87962"), Color(hex: "#EBAF68")],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
 
-            VStack(alignment: .leading, spacing: 4) {
-                Text(authSession.account?.tier == "pro" ? "Lifetime membership" : "Free membership")
-                    .font(.system(size: 20, weight: .bold, design: .rounded))
-                Text(authSession.account?.tier == "pro"
+            Circle()
+                .fill(Color(hex: "#FFE5A8").opacity(0.85))
+                .frame(width: 116, height: 116)
+                .blur(radius: 2)
+                .offset(x: 28, y: 28)
+
+            VStack(alignment: .leading, spacing: 0) {
+                HStack {
+                    Label(isPro ? "YOUKI PRO" : "YOUKI MEMBERSHIP",
+                          systemImage: isPro ? "sparkles" : "sun.max.fill")
+                        .font(.system(size: 10, weight: .bold, design: .rounded))
+                        .tracking(1.2)
+                    Spacer()
+                    if isPro {
+                        Text("ACTIVE")
+                            .font(.system(size: 9, weight: .bold, design: .rounded))
+                            .tracking(0.8)
+                            .padding(.horizontal, 9)
+                            .padding(.vertical, 6)
+                            .background(.white.opacity(0.18), in: Capsule())
+                            .accessibilityIdentifier("proMembershipStatus")
+                    }
+                }
+                .foregroundStyle(.white.opacity(0.94))
+
+                Spacer(minLength: 20)
+
+                Text(isPro ? "Lifetime membership" : "Free membership")
+                    .font(.system(size: 24, weight: .bold, design: .rounded))
+                    .foregroundStyle(.white)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.85)
+                Text(isPro
                      ? "Your Youki Pro access is active on this account."
                      : "Live forecasts and golden-hour alarms are included.")
-                    .font(.system(size: 13, design: .rounded))
-                    .foregroundStyle(inkColor.opacity(0.66))
-            }
+                    .font(.system(size: 13, weight: .medium, design: .rounded))
+                    .foregroundStyle(.white.opacity(0.84))
+                    .padding(.top, 5)
 
-            if authSession.account?.tier != "pro" {
-                Button("Explore Youki Pro") { showUpgradeInfo = true }
-                    .font(.system(size: 13, weight: .bold, design: .rounded))
-                    .padding(.horizontal, 15)
-                    .padding(.vertical, 10)
-                    .foregroundStyle(panelColor)
-                    .background(accentColor, in: Capsule())
-                    .accessibilityIdentifier("exploreProButton")
+                if !isPro {
+                    Button("Explore Youki Pro") { showUpgradeInfo = true }
+                        .font(.system(size: 12, weight: .bold, design: .rounded))
+                        .padding(.horizontal, 14)
+                        .padding(.vertical, 9)
+                        .foregroundStyle(Color(hex: "#493B3B"))
+                        .background(.white.opacity(0.92), in: Capsule())
+                        .padding(.top, 14)
+                        .accessibilityIdentifier("exploreProButton")
+                }
             }
+            .padding(20)
+            .frame(maxWidth: .infinity, minHeight: isPro ? 174 : 206, alignment: .leading)
         }
-        .padding(18)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(accentColor.opacity(appTheme == .dark ? 0.08 : 0.12),
-                    in: RoundedRectangle(cornerRadius: 20, style: .continuous))
-        .overlay {
-            RoundedRectangle(cornerRadius: 20, style: .continuous)
-                .stroke(accentColor.opacity(0.18), lineWidth: 1)
-        }
+        .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
+        .accessibilityElement(children: .contain)
     }
 
     private func sectionHeading(_ title: String) -> some View {
