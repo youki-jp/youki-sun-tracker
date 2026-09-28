@@ -5,11 +5,12 @@ import CoreLocation
 @main
 struct ModelRegression {
     static func timeline(polar: Bool = false, malformed: Bool = false,
-                         missingWeather: Bool = false) -> SkyDayTimelineResponse {
+                         missingWeather: Bool = false, latitude: Double = 35,
+                         longitude: Double = 139) -> SkyDayTimelineResponse {
         let date = "2026-09-25"
         func iso(_ clock: String) -> String { date + "T" + clock }
         return SkyDayTimelineResponse(
-            location: .init(latitude: 35, longitude: 139, altitudeMeters: nil, timezoneId: "Asia/Tokyo"),
+            location: .init(latitude: latitude, longitude: longitude, altitudeMeters: nil, timezoneId: "Asia/Tokyo"),
             targetDateIso: date, generatedAtIso: iso("00:00:00"),
             milestones: .init(
                 astronomicalDawnIso: nil, nauticalDawnIso: nil,
@@ -40,7 +41,7 @@ struct ModelRegression {
             summary: .init(sunriseLabel: nil, sunriseScore: nil, sunsetLabel: nil, sunsetScore: nil))
     }
 
-    static func prediction() -> SkyColorAPIResponse {
+    static func prediction(latitude: Double = 35, longitude: Double = 139) -> SkyColorAPIResponse {
         let events = [SkyEventKind.sunrise, .sunset].map { kind in
             let time = "2026-09-25T" + (kind == .sunrise ? "06:00:00" : "18:00:00")
             return SkyColorAPIResponse.SkyColorPrediction(
@@ -52,7 +53,7 @@ struct ModelRegression {
                                               nauticalStartsAtIso: time, nauticalEndsAtIso: time,
                                               astronomicalStartsAtIso: time, astronomicalEndsAtIso: time)))
         }
-        return .init(location: .init(latitude: 35, longitude: 139, altitudeMeters: nil, timezoneId: "Asia/Tokyo"),
+        return .init(location: .init(latitude: latitude, longitude: longitude, altitudeMeters: nil, timezoneId: "Asia/Tokyo"),
                      generatedAtIso: "2026-09-25T00:00:00", predictions: events)
     }
 
@@ -168,6 +169,74 @@ struct ModelRegression {
         precondition(refreshCalls == 3 && refreshing.skyScene.provenance == .forecast)
         precondition(refreshing.errorMessage == nil && refreshing.hasLiveSky)
         precondition(refreshing.skyScene.base != retainedScene.base || refreshing.selectedMoment == .now)
+
+        var scoreRefreshCalls = 0
+        let scoreRefreshFailure = ServerViewModel(requiresAuthentication: false,
+            now: { simulatedNow },
+            predictionLoader: { _ in
+                scoreRefreshCalls += 1
+                if scoreRefreshCalls > 1 { throw Failure.offline }
+                return prediction()
+            }, timelineLoader: { _ in timeline() })
+        simulatedNow = utc.date(from: "2026-09-25T03:00:00Z")!
+        await scoreRefreshFailure.load(location)
+        simulatedNow.addTimeInterval(31 * 60)
+        await scoreRefreshFailure.refreshIfNeeded()
+        precondition(scoreRefreshFailure.hasLiveSky && !scoreRefreshFailure.hasLiveForecast
+                     && !scoreRefreshFailure.isScoreAvailable && !scoreRefreshFailure.isLive,
+                     "A refreshed sky cannot make the earlier score appear current")
+        precondition(scoreRefreshFailure.errorMessage?.contains("Score refresh failed") == true)
+
+        var locationFixes = [
+            CLLocation(latitude: 35, longitude: 139),
+            CLLocation(latitude: 35.05, longitude: 139),
+            CLLocation(latitude: 35.12, longitude: 139)
+        ]
+        var locationFixIndex = 0
+        var locationNetworkCalls = 0
+        var locationNow = fixedNow
+        let deviceForecast = ServerViewModel(requiresAuthentication: false, now: { locationNow },
+            locationLoader: {
+                defer { locationFixIndex += 1 }
+                return locationFixes[min(locationFixIndex, locationFixes.count - 1)]
+            },
+            predictionLoader: { coordinate in
+                locationNetworkCalls += 1
+                return prediction(latitude: coordinate.latitude, longitude: coordinate.longitude)
+            },
+            timelineLoader: { coordinate in
+                locationNetworkCalls += 1
+                return timeline(latitude: coordinate.latitude, longitude: coordinate.longitude)
+            })
+        await deviceForecast.loadDeviceLocation()
+        precondition(locationNetworkCalls == 2 && deviceForecast.hasLiveSky)
+        locationNow.addTimeInterval(31 * 60)
+        await deviceForecast.loadDeviceLocation()
+        precondition(locationNetworkCalls == 4, "A stale same-area location refreshes once")
+        await deviceForecast.loadDeviceLocation()
+        precondition(locationNetworkCalls == 4,
+                     "A same-area fix compares against the successful refresh anchor")
+
+        deviceForecast.setForeground(false)
+        locationFixes.append(CLLocation(latitude: 36, longitude: 140))
+        locationNow.addTimeInterval(31 * 60)
+        deviceForecast.setForeground(true)
+        try await Task.sleep(for: .milliseconds(50))
+        precondition(locationNetworkCalls == 6,
+                     "Returning to foreground checks device location and fetches after city change")
+
+        let cancelledLocation = ServerViewModel(requiresAuthentication: false,
+            locationLoader: {
+                try await Task.sleep(for: .milliseconds(30))
+                return CLLocation(latitude: 35, longitude: 139)
+            }, predictionLoader: { _ in prediction() }, timelineLoader: { _ in timeline() })
+        let pendingLocation = Task { await cancelledLocation.loadDeviceLocation() }
+        try await Task.sleep(for: .milliseconds(2))
+        cancelledLocation.showSample()
+        await pendingLocation.value
+        precondition(!cancelledLocation.hasLiveSky && !cancelledLocation.hasLiveForecast
+                     && cancelledLocation.forecastDays.count == 1,
+                     "A late device fix cannot restore live data after sign-out")
         simulatedNow = utc.date(from: "2026-09-25T15:05:00Z")!
         await refreshing.refreshIfNeeded()
         precondition(!refreshing.hasLiveSky && refreshing.skyScene == .fallback,

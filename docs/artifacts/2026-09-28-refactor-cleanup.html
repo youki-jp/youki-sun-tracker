@@ -1,0 +1,220 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f7f4ee">
+  <title>Youki — Refactor Summary</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --ink: #252a38;
+      --muted: #697080;
+      --paper: #f7f4ee;
+      --card: #fffefa;
+      --line: #e9e4db;
+      --plum: #66536b;
+      --coral: #c97862;
+      --gold: #e6ae68;
+      --green: #466b5b;
+      --green-bg: #e9f1eb;
+      --blue-bg: #edf1f5;
+      --shadow: 0 18px 55px rgba(48, 42, 51, .08);
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--paper);
+      color: var(--ink);
+      font: 16px/1.6 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+    a { color: var(--plum); text-decoration-thickness: 1px; text-underline-offset: 3px; }
+    .page { width: min(1040px, calc(100% - 40px)); margin: 0 auto; padding: 48px 0 72px; }
+    .hero {
+      position: relative;
+      overflow: hidden;
+      padding: clamp(30px, 6vw, 64px);
+      border-radius: 30px;
+      color: white;
+      background: linear-gradient(125deg, #31364b 2%, #70576b 42%, #ca8065 74%, #edba70 100%);
+      box-shadow: var(--shadow);
+    }
+    .hero::after {
+      content: "";
+      position: absolute;
+      width: 270px;
+      height: 270px;
+      right: 5%;
+      top: -100px;
+      border-radius: 50%;
+      background: rgba(255, 231, 177, .65);
+      filter: blur(2px);
+    }
+    .eyebrow { margin: 0 0 12px; font-size: 12px; font-weight: 750; letter-spacing: .16em; text-transform: uppercase; opacity: .82; }
+    h1 { position: relative; z-index: 1; max-width: 670px; margin: 0; font-size: clamp(36px, 6vw, 60px); line-height: 1.05; letter-spacing: -.045em; }
+    .hero-copy { position: relative; z-index: 1; max-width: 610px; margin: 22px 0 0; color: rgba(255,255,255,.86); font-size: 18px; }
+    .hero-meta { position: relative; z-index: 1; display: flex; flex-wrap: wrap; gap: 10px; margin-top: 28px; }
+    .pill { display: inline-flex; align-items: center; gap: 8px; padding: 7px 12px; border: 1px solid rgba(255,255,255,.25); border-radius: 999px; background: rgba(255,255,255,.12); font-size: 13px; font-weight: 650; }
+    .dot { width: 8px; height: 8px; border-radius: 50%; background: #a9ddb7; }
+    main { display: grid; gap: 22px; margin-top: 24px; }
+    .intro { display: grid; grid-template-columns: 1.4fr .8fr; gap: 20px; }
+    .card { padding: 27px; border: 1px solid var(--line); border-radius: 22px; background: var(--card); box-shadow: 0 8px 26px rgba(48,42,51,.035); }
+    h2 { margin: 0 0 14px; font-size: 22px; line-height: 1.25; letter-spacing: -.025em; }
+    h3 { margin: 0 0 7px; font-size: 17px; line-height: 1.35; }
+    p { margin: 0; color: var(--muted); }
+    .summary-list { display: grid; gap: 12px; margin: 18px 0 0; padding: 0; list-style: none; }
+    .summary-list li { display: grid; grid-template-columns: 24px 1fr; gap: 10px; color: var(--ink); }
+    .check { color: var(--green); font-weight: 800; }
+    .metric { display: flex; flex-direction: column; justify-content: center; min-height: 100%; background: linear-gradient(150deg, #f5eee8, #f4f0e7); }
+    .metric-number { color: var(--plum); font-size: 54px; font-weight: 760; line-height: 1; letter-spacing: -.06em; }
+    .metric-label { margin-top: 12px; font-weight: 650; }
+    .metric-note { margin-top: 7px; font-size: 13px; }
+    .section-head { display: flex; align-items: end; justify-content: space-between; gap: 20px; margin: 18px 2px 0; }
+    .section-head p { max-width: 420px; font-size: 14px; }
+    .grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; }
+    .item { padding: 22px; border: 1px solid var(--line); border-radius: 18px; background: var(--card); }
+    .item-top { display: flex; align-items: start; justify-content: space-between; gap: 12px; margin-bottom: 13px; }
+    .number { flex: 0 0 auto; display: grid; place-items: center; width: 34px; height: 34px; border-radius: 11px; color: white; background: linear-gradient(145deg, var(--plum), var(--coral)); font-size: 13px; font-weight: 750; }
+    .tag { flex: 0 0 auto; padding: 4px 9px; border-radius: 999px; color: var(--green); background: var(--green-bg); font-size: 11px; font-weight: 750; letter-spacing: .04em; text-transform: uppercase; }
+    .item p { font-size: 14px; }
+    .item a { display: inline-block; margin-top: 13px; font-size: 13px; font-weight: 650; }
+    .location-flow { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-top: 20px; }
+    .step { position: relative; padding: 15px; border: 1px solid var(--line); border-radius: 14px; background: #fff; }
+    .step strong { display: block; margin-bottom: 5px; font-size: 13px; }
+    .step span { color: var(--muted); font-size: 12px; }
+    .step:not(:last-child)::after { content: "→"; position: absolute; z-index: 1; top: 50%; right: -14px; transform: translateY(-50%); color: var(--coral); font-size: 18px; font-weight: 750; }
+    .verify { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 16px; }
+    .verify-box { padding: 15px 16px; border-radius: 14px; background: var(--green-bg); }
+    .verify-box.pending { background: var(--blue-bg); }
+    .verify-box strong { display: block; margin-bottom: 4px; font-size: 13px; }
+    .verify-box span { color: var(--muted); font-size: 12px; }
+    code { font: 12px/1.5 ui-monospace, SFMono-Regular, Menlo, monospace; }
+    footer { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 14px; margin: 24px 3px 0; color: var(--muted); font-size: 13px; }
+    @media (max-width: 720px) {
+      .page { width: min(100% - 24px, 560px); padding-top: 16px; }
+      .hero { border-radius: 22px; }
+      .intro, .grid, .verify { grid-template-columns: 1fr; }
+      .metric { min-height: 170px; }
+      .location-flow { grid-template-columns: 1fr 1fr; }
+      .step:nth-child(2)::after { display: none; }
+      .section-head { align-items: start; flex-direction: column; }
+      .card { padding: 21px; }
+    }
+    @media print {
+      body { background: white; }
+      .page { width: 100%; padding: 0; }
+      .hero, .card, .item { box-shadow: none; break-inside: avoid; }
+      a { color: inherit; }
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <header class="hero">
+      <p class="eyebrow">Youki · Engineering update · 28 Sep 2026</p>
+      <h1>A cleaner forecast flow, from location to screen.</h1>
+      <p class="hero-copy">A focused refactor of the app’s data lifecycle, API boundaries, account UI, and settings. The existing visual design and public forecast contracts stay in place.</p>
+      <div class="hero-meta">
+        <span class="pill"><span class="dot"></span> Implementation complete</span>
+        <span class="pill">10 km reuse radius</span>
+        <span class="pill">30 min freshness window</span>
+      </div>
+    </header>
+
+    <main>
+      <section class="intro" aria-label="Summary">
+        <article class="card">
+          <h2>What changed</h2>
+          <p>The work addresses places where duplicated logic or ambiguous state could waste requests, show stale data, or imply a feature that does not exist.</p>
+          <ul class="summary-list">
+            <li><span class="check">✓</span><span>Same-area location checks reuse a fresh forecast; moving beyond 10 km requests data for the new coordinates.</span></li>
+            <li><span class="check">✓</span><span>Sky and score freshness now have separate state, so a failed score refresh cannot present an older score as current.</span></li>
+            <li><span class="check">✓</span><span>Repeated transport, route validation, and provider timestamp parsing now use shared helpers.</span></li>
+            <li><span class="check">✓</span><span>Account views are split by responsibility, and Settings labels describe the controls that are actually available.</span></li>
+          </ul>
+        </article>
+        <aside class="card metric">
+          <span class="metric-number">10 km</span>
+          <span class="metric-label">same-area cache radius</span>
+          <span class="metric-note">The app checks a fresh device fix on load and foreground return. Normal 30-minute and local-day refresh rules still apply.</span>
+        </aside>
+      </section>
+
+      <section aria-labelledby="areas-title">
+        <div class="section-head">
+          <div><p class="eyebrow" style="color:var(--coral)">Implementation</p><h2 id="areas-title">Six cleanup areas</h2></div>
+          <p>These are contained refactors. The forecast API shapes, endpoint paths, and account actions remain compatible.</p>
+        </div>
+        <div class="grid">
+          <article class="item">
+            <div class="item-top"><span class="number">01</span><span class="tag">Location state</span></div>
+            <h3>Reuse nearby forecasts</h3>
+            <p>Device-location mode checks a new fix when the app loads or returns to foreground. Results are reused inside the 10 km radius while fresh; a successful refresh resets the location anchor. Manual coordinates remain selected until the user switches back.</p>
+            <a href="../../frontend/YoukiApp/ServerViewModel.swift">View ServerViewModel →</a>
+          </article>
+          <article class="item">
+            <div class="item-top"><span class="number">02</span><span class="tag">Freshness</span></div>
+            <h3>Keep sky and score honest</h3>
+            <p>Initial load and refresh use shared scene and score matching helpers. Partial success keeps usable sky details, while a failed score refresh clears the old score and reports the partial result.</p>
+            <a href="../../frontend/YoukiApp/Tests/ModelRegression.swift">View model regression cases →</a>
+          </article>
+          <article class="item">
+            <div class="item-top"><span class="number">03</span><span class="tag">iOS networking</span></div>
+            <h3>Share authenticated POST setup</h3>
+            <p>Both forecast clients use one JSON POST transport and server-error decoder. Endpoint DTOs, paths, success validation, bearer auth, and AuthSession token handling remain in place.</p>
+            <a href="../../frontend/YoukiApp/SkyColorAPI.swift">View shared transport →</a>
+          </article>
+          <article class="item">
+            <div class="item-top"><span class="number">04</span><span class="tag">Backend boundary</span></div>
+            <h3>Validate requests consistently</h3>
+            <p>The prediction and timeline routes share JSON, location, and date validation. Arrays are rejected as objects, and dates must exist on the calendar, including leap-year rules.</p>
+            <a href="../../server/src/http/routes/request-validation.ts">View request validation →</a>
+          </article>
+          <article class="item">
+            <div class="item-top"><span class="number">05</span><span class="tag">Provider parsing</span></div>
+            <h3>Preserve local timestamp meaning</h3>
+            <p>Weather, air-quality, and solar adapters share one strict local timestamp helper. It accepts minute or second precision and rejects malformed or timezone-marked values instead of silently relabeling UTC as local time.</p>
+            <a href="../../server/src/infrastructure/open-meteo/local-timestamp.ts">View timestamp helper →</a>
+          </article>
+          <article class="item">
+            <div class="item-top"><span class="number">06</span><span class="tag">Account & settings</span></div>
+            <h3>Make ownership and controls clear</h3>
+            <p>Account entry and management are separate views, coordinated by AccountScreen. The settings sheet says “Sunset alerts — Coming later” and labels the location navigation as “Locations.”</p>
+            <a href="../../frontend/YoukiApp/AccountScreen.swift">View account coordinator →</a>
+          </article>
+        </div>
+      </section>
+
+      <section class="card" aria-labelledby="flow-title">
+        <p class="eyebrow" style="color:var(--coral)">Location behavior</p>
+        <h2 id="flow-title">From fresh location fix to forecast</h2>
+        <p>Requests depend on movement and freshness, rather than running again for a nearby fix.</p>
+        <div class="location-flow">
+          <div class="step"><strong>Get device fix</strong><span>On load and foreground return.</span></div>
+          <div class="step"><strong>Compare distance</strong><span>Measure from the last successful forecast location.</span></div>
+          <div class="step"><strong>Reuse nearby data</strong><span>Inside 10 km, if still within freshness rules.</span></div>
+          <div class="step"><strong>Fetch when due</strong><span>Over 10 km, after 30 minutes, or on local-day change.</span></div>
+        </div>
+      </section>
+
+      <section class="card" aria-labelledby="checks-title">
+        <p class="eyebrow" style="color:var(--coral)">Build and checks</p>
+        <h2 id="checks-title">What was verified</h2>
+        <div class="verify">
+          <div class="verify-box"><strong>Backend typecheck and bundle · Passed</strong><span><code>bun run typecheck</code> and <code>bun build src/index.ts --target bun --outdir /tmp/youki-server-build</code></span></div>
+          <div class="verify-box"><strong>Backend focused regressions · Passed</strong><span>13 cases reported for request validation and timestamp handling.</span></div>
+          <div class="verify-box"><strong>iOS simulator-target build · Passed</strong><span>Built with the project entitlement path override and code signing disabled.</span></div>
+          <div class="verify-box pending"><strong>Simulator visual inspection · Not run</strong><span>CoreSimulator services were unavailable, so no screen capture was possible.</span></div>
+        </div>
+        <p style="margin-top:14px;font-size:13px">Swift model regression cases were added but not executed. Existing endpoint contracts and location/freshness defaults were preserved.</p>
+      </section>
+    </main>
+
+    <footer>
+      <span>Implementation report: <a href="2026-09-28-refactor-cleanup.md">Markdown summary</a></span>
+      <span>Detailed plan: <a href="../architecture/2026-09-28-refactor-backlog.md">Refactor backlog</a></span>
+      <span>State: changes are in the working tree, not committed.</span>
+    </footer>
+  </div>
+</body>
+</html>

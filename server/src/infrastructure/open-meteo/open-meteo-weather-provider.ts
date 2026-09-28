@@ -4,6 +4,7 @@ import { isLocalIsoWithinRange } from "../../application/services/local-date-tim
 import type { WeatherSample } from "../../domain";
 import type { OpenMeteoWeatherResponse } from "./open-meteo-types";
 import { OpenMeteoClient } from "./open-meteo-client";
+import { normalizeOpenMeteoLocalTimestamp } from "./local-timestamp";
 
 export class OpenMeteoWeatherProvider implements WeatherProvider {
   constructor(private readonly client: OpenMeteoClient) {}
@@ -38,7 +39,7 @@ export class OpenMeteoWeatherProvider implements WeatherProvider {
 
     return hourly.time
       .map((timeIso, index) => ({
-        timeIso: normalizeLocalIso(timeIso),
+        timeIso: normalizeOpenMeteoLocalTimestamp(timeIso),
         cloudCover: {
           totalPct: hourly.cloud_cover?.[index] ?? null,
           lowPct: hourly.cloud_cover_low?.[index] ?? null,
@@ -66,8 +67,4 @@ function radiationAt(values: Array<number | null> | undefined, unit: string | un
   // Open-Meteo reports instantaneous radiation in watts per square metre.
   if (unit !== "W/m²" && unit !== "W/m2") return null;
   return typeof value === "number" && Number.isFinite(value) && value >= 0 ? value : null;
-}
-
-function normalizeLocalIso(value: string): string {
-  return value.length === 16 ? `${value}:00` : value.replace("Z", "");
 }

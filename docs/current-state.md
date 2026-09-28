@@ -1,8 +1,10 @@
 # Current Project State
 
-Updated: 2026-09-27
+Updated: 2026-09-28
 
-Auth update (2026-09-28): source now includes Sign in with Apple, SQLite-backed Youki sessions and Free/Pro entitlements, authenticated forecast routes, and shared quota counters. Drizzle manages SQLite migrations. This has not been deployed or verified end-to-end against live Apple services. See [auth implementation](auth-implementation.md) for the authoritative auth status. Older statements below describe the previous prototype snapshot.
+Auth update (2026-09-28): source now includes Sign in with Apple, SQLite-backed Youki sessions and Free/Pro entitlements, authenticated forecast routes, and shared quota counters. Drizzle manages SQLite migrations. This has not been deployed or verified end-to-end against live Apple services. See [auth implementation](auth-implementation.md) for the authoritative auth status.
+
+Refactor update (2026-09-28): the iOS client rechecks device location on load and foreground return, reuses a forecast within 10 km of its successful-fetch anchor while it remains fresh, and refreshes after 30 minutes or a local-day change. Sky and score freshness are tracked separately. The backend now shares forecast input validation and strict Open-Meteo local-timestamp normalization. Account views and authenticated forecast transport were split into focused components. See the [refactor implementation summary](artifacts/2026-09-28-refactor-cleanup.md) and [implementation backlog](architecture/2026-09-28-refactor-backlog.md).
 
 ## Product
 
@@ -43,7 +45,7 @@ Implemented behavior:
 - The heuristic engine returns a score, confidence, label, estimated color, dominant colors, reasons, and event window.
 - Solar elevation and azimuth are computed with the NOAA solar position algorithm, including atmospheric refraction near the horizon. Open-Meteo still supplies the daily sunrise and sunset times that anchor each window.
 - Requests may set `includeFeatures` to receive the per-timestep solar, weather, and air-quality samples alongside each prediction.
-- CORS is enabled on `/api/*` so browser clients on another origin can call the API.
+- CORS middleware is enabled on `/api/*` only when `CORS_ORIGINS` is configured; browser origins are restricted to that allowlist.
 - `POST /api/v1/sky-day/timeline` returns a whole local day: real solar-elevation milestones, adaptively spaced solar samples, and the hourly weather and air-quality grids. Milestones may be null at polar latitudes where the sun never reaches a given elevation.
 - `SkyGradientService` interpolates the independent timeline grids into a normalized observation while preserving missing-field availability.
 - The deterministic `SkyGradientEngine` ports the reference Oklch model, emits nine stable stops, a five-color ramp, glow geometry, and fractional cloud bands. Its tests cover interpolation, missing data, safe ranges, atmospheric regimes, and repeatability.
@@ -66,14 +68,14 @@ The frontend mirrors the Youki mock and can now load the current forecast from t
 - Settings sheet
 - Paywall preview
 
-The screen starts with `PrototypeDay.sampleDays` as a fallback, requests the user's current location, calls `POST /api/v1/sky-color/predictions`, and maps the live response into the existing presentation model. Live score, color palette, confidence, reasons, event times, cloud cover, and UV values are displayed when the request succeeds.
+The screen starts with `PrototypeDay.sampleDays` as a fallback. After authentication it requests device location and calls `POST /api/v1/sky-color/predictions`, mapping the live response into the existing presentation model. Live score, color palette, confidence, reasons, event times, cloud cover, and UV values are displayed when the request succeeds.
 
-The screen also requests `POST /api/v1/sky-day/timeline`, interpolates solar/weather/air-quality rows locally, and renders the unchanged nine-stop gradient beneath a scene with a geometry-gated sun, twilight glow, and seeded layered clouds. Radiation-supported daylight is distinguished from a cloud-cover estimate and unavailable inputs. Same-day refresh failures retain the scene with a stale indication; changed local days clear it. A foreground minute task refreshes presentation without doing network work in a view body. The location chip reverse-geocodes coordinates to a city/region name, with a generic fallback if lookup fails. Synthetic debug fixtures and Foundation-only regressions cover clear/broken cloud, overcast, missing-data, night, and interpolation edges.
+The screen also requests `POST /api/v1/sky-day/timeline`, interpolates solar/weather/air-quality rows locally, and renders the unchanged nine-stop gradient beneath a scene with a geometry-gated sun, twilight glow, and seeded layered clouds. Radiation-supported daylight is distinguished from a cloud-cover estimate and unavailable inputs. Same-day refresh failures retain the scene with a stale indication; score freshness is tracked independently so a failed score refresh does not present an older score as current. A foreground minute task refreshes presentation without doing network work in a view body. Device-location mode obtains a fresh location on load and foreground return; fixes within 10 km of the last successful forecast location reuse cached data until the 30-minute or local-day refresh is due. A move beyond 10 km loads a forecast for the new coordinates. Manual coordinates remain selected until the user returns to device location. The location chip reverse-geocodes coordinates to a city/region name, with a generic fallback if lookup fails. Synthetic debug fixtures and Foundation-only regressions cover clear/broken cloud, overcast, missing-data, night, and interpolation edges.
 
 ## What Is Not Connected Yet
 
 - The first golden-hour alarm flow is implemented: sunrise/sunset selection, a lead time, actual timeline timing, one alarm's local persistence, and an availability-gated AlarmKit adapter. The installed Xcode 16.4 builds the unavailable path; the AlarmKit branch still needs an Xcode 26 build and physical iOS 26 verification. See [alarm design and status](alarm-first-draft.md).
-- Recurring smart alarms, ordinary notifications, widgets, subscriptions, saved locations, and forecast persistence remain previews or future work.
+- Recurring smart alarms, ordinary notifications, widgets, subscriptions, saved locations, and forecast persistence remain previews or future work. The Settings sheet labels sunset alerts as “Coming later” because no notification is scheduled.
 - The calendar still displays the one live target day; it does not yet load a full seven-day set from the timeline endpoint.
 - The iOS target has no standalone unit-test target for the Swift math; simulator app/UI-target builds remain the available verification seam.
 - Weather and air-quality inputs remain hourly upstream; the client samples radiation and cloud inputs for the selected minute. The semantic scoring path intentionally retains nearest-sample behavior.

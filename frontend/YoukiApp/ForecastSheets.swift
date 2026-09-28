@@ -162,21 +162,17 @@ extension ContentView {
                     .foregroundStyle(accentColor)
             }
 
-            settingsToggleRow(
-                title: "Sunset alerts",
-                subtitle: "Evening reminders for strong glow days.",
-                isOn: $sunsetAlertEnabled
-            )
-            .accessibilityIdentifier("sunsetAlertsToggle")
+            settingsRow(title: "Sunset alerts", subtitle: "Coming later") { EmptyView() }
+            .accessibilityIdentifier("sunsetAlertsRow")
 
             Button {
                 activeSheet = .locations
             } label: {
                 HStack {
                     VStack(alignment: .leading, spacing: 2) {
-                        Text("All settings")
+                        Text("Locations")
                             .font(.system(size: 14, weight: .semibold, design: .rounded))
-                        Text("Locations, forecast defaults, notifications")
+                        Text("Manage your forecast location")
                             .font(.system(size: 11.5, weight: .medium, design: .rounded))
                             .foregroundStyle(inkColor.opacity(0.55))
                     }

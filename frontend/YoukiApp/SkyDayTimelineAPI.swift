@@ -140,54 +140,30 @@ struct SkyDayTimelineAPIClient {
         targetDateIso: String? = nil
     ) async throws -> SkyDayTimelineResponse {
         let endpoint = baseURL.appendingPathComponent("api/v1/sky-day/timeline")
-        var request = URLRequest(url: endpoint)
-        request.httpMethod = "POST"
-        request.timeoutInterval = 45
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        request.httpBody = try JSONEncoder().encode(
-            SkyDayTimelineRequest(
+        let decoded: SkyDayTimelineResponse
+        do {
+            decoded = try await AuthenticatedJSONTransport.post(
+                to: endpoint,
+                body: SkyDayTimelineRequest(
                 location: .init(
                     latitude: latitude,
                     longitude: longitude,
                     altitudeMeters: altitudeMeters
                 ),
                 targetDateIso: targetDateIso
+                ),
+                fallbackErrorMessage: "Sky timeline request failed"
             )
-        )
-
-        let (data, response) = try await AuthSession.shared.send(request)
-
-        guard let httpResponse = response as? HTTPURLResponse else {
+        } catch AuthenticatedJSONTransportError.invalidResponse {
             throw SkyDayTimelineAPIError.invalidResponse
-        }
-
-        guard (200..<300).contains(httpResponse.statusCode) else {
-            let message = decodeServerError(from: data)
-                ?? "Sky timeline request failed (HTTP \(httpResponse.statusCode))."
+        } catch let AuthenticatedJSONTransportError.server(message) {
             throw SkyDayTimelineAPIError.server(message: message)
         }
-
-        let decoded = try JSONDecoder().decode(SkyDayTimelineResponse.self, from: data)
 
         guard !decoded.solar.isEmpty else {
             throw SkyDayTimelineAPIError.emptyTimeline
         }
 
         return decoded
-    }
-
-    private func decodeServerError(from data: Data) -> String? {
-        struct ErrorResponse: Decodable {
-            struct ErrorBody: Decodable {
-                let message: String
-            }
-
-            let error: ErrorBody
-        }
-
-        return try? JSONDecoder()
-            .decode(ErrorResponse.self, from: data)
-            .error
-            .message
     }
 }
