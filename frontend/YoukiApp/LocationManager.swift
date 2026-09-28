@@ -62,6 +62,10 @@ final class LocationManager: NSObject, ObservableObject, @preconcurrency CLLocat
         }
     }
 
+    func cancelCurrentLocationRequest() {
+        finish(with: .failure(CancellationError()))
+    }
+
     func locationManagerDidChangeAuthorization(_ manager: CLLocationManager) {
         switch manager.authorizationStatus {
         case .authorizedWhenInUse, .authorizedAlways:

@@ -89,6 +89,46 @@ enum SkyColorAPIError: LocalizedError {
     }
 }
 
+enum AuthenticatedJSONTransportError: Error {
+    case invalidResponse
+    case server(message: String)
+}
+
+@MainActor
+enum AuthenticatedJSONTransport {
+    static func post<Body: Encodable, Response: Decodable>(
+        to endpoint: URL,
+        body: Body,
+        fallbackErrorMessage: String
+    ) async throws -> Response {
+        var request = URLRequest(url: endpoint)
+        request.httpMethod = "POST"
+        request.timeoutInterval = 45
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.httpBody = try JSONEncoder().encode(body)
+
+        let (data, response) = try await AuthSession.shared.send(request)
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw AuthenticatedJSONTransportError.invalidResponse
+        }
+        guard (200..<300).contains(httpResponse.statusCode) else {
+            throw AuthenticatedJSONTransportError.server(
+                message: decodeServerError(from: data)
+                    ?? "\(fallbackErrorMessage) (HTTP \(httpResponse.statusCode))."
+            )
+        }
+        return try JSONDecoder().decode(Response.self, from: data)
+    }
+
+    private static func decodeServerError(from data: Data) -> String? {
+        struct ErrorResponse: Decodable {
+            struct ErrorBody: Decodable { let message: String }
+            let error: ErrorBody
+        }
+        return try? JSONDecoder().decode(ErrorResponse.self, from: data).error.message
+    }
+}
+
 @MainActor
 struct SkyColorAPIClient {
     let baseURL: URL
@@ -99,53 +139,30 @@ struct SkyColorAPIClient {
         altitudeMeters: Double?
     ) async throws -> SkyColorAPIResponse {
         let endpoint = baseURL.appendingPathComponent("api/v1/sky-color/predictions")
-        var request = URLRequest(url: endpoint)
-        request.httpMethod = "POST"
-        request.timeoutInterval = 45
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        request.httpBody = try JSONEncoder().encode(
-            SkyColorPredictionRequest(
+        let decoded: SkyColorAPIResponse
+        do {
+            decoded = try await AuthenticatedJSONTransport.post(
+                to: endpoint,
+                body: SkyColorPredictionRequest(
                 location: .init(
                     latitude: latitude,
                     longitude: longitude,
                     altitudeMeters: altitudeMeters
                 ),
                 requestedEvents: [.sunrise, .sunset]
+                ),
+                fallbackErrorMessage: "Forecast request failed"
             )
-        )
-
-        let (data, response) = try await AuthSession.shared.send(request)
-
-        guard let httpResponse = response as? HTTPURLResponse else {
+        } catch AuthenticatedJSONTransportError.invalidResponse {
             throw SkyColorAPIError.invalidResponse
-        }
-
-        guard (200..<300).contains(httpResponse.statusCode) else {
-            let message = decodeServerError(from: data) ?? "Forecast request failed (HTTP \(httpResponse.statusCode))."
+        } catch let AuthenticatedJSONTransportError.server(message) {
             throw SkyColorAPIError.server(message: message)
         }
-
-        let decoded = try JSONDecoder().decode(SkyColorAPIResponse.self, from: data)
 
         guard !decoded.predictions.isEmpty else {
             throw SkyColorAPIError.emptyPredictions
         }
 
         return decoded
-    }
-
-    private func decodeServerError(from data: Data) -> String? {
-        struct ErrorResponse: Decodable {
-            struct ErrorBody: Decodable {
-                let message: String
-            }
-
-            let error: ErrorBody
-        }
-
-        return try? JSONDecoder()
-            .decode(ErrorResponse.self, from: data)
-            .error
-            .message
     }
 }

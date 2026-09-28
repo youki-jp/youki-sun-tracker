@@ -20,6 +20,7 @@ final class ServerViewModel: ObservableObject {
     private let geocoder = CLGeocoder()
     private let predictionLoader: (ForecastCoordinates) async throws -> SkyColorAPIResponse
     private let timelineLoader: (ForecastCoordinates) async throws -> SkyDayTimelineResponse
+    private let locationLoader: () async throws -> CLLocation
     private var timeline: SkyDayTimelineResponse?
     private var predictions: SkyColorAPIResponse?
     private var scenes: [SkyMoment: SkyScene] = [:]
@@ -30,9 +31,15 @@ final class ServerViewModel: ObservableObject {
     private let now: () -> Date
     private let requiresAuthentication: Bool
     private var retrievedAt: Date?
+    private var scoreRetrievedAt: Date?
+    private var forecastCoordinates: ForecastCoordinates?
+    private var locationLookupID = UUID()
     private var lastRefreshAttempt: Date?
     private var isRefreshing = false
     private var isForeground = true
+    private var isLocating = false
+    private var geocodeID = UUID()
+    private static let sameForecastAreaRadiusMeters: CLLocationDistance = 10_000
 
     var skyAppearance: SkyAppearance { skyScene.base }
     private var canLoadLive: Bool {
@@ -48,6 +55,7 @@ final class ServerViewModel: ObservableObject {
     init(
         requiresAuthentication: Bool = true,
         now: @escaping () -> Date = Date.init,
+        locationLoader: (() async throws -> CLLocation)? = nil,
         predictionLoader: @escaping (ForecastCoordinates) async throws -> SkyColorAPIResponse = { coordinates in
             #if DEBUG
             if ProcessInfo.processInfo.arguments.contains(where: { $0.hasPrefix("-uiSkyFixture") }) {
@@ -71,6 +79,8 @@ final class ServerViewModel: ObservableObject {
     ) {
         self.requiresAuthentication = requiresAuthentication
         self.now = now
+        let locationManager = self.locationManager
+        self.locationLoader = locationLoader ?? { try await locationManager.currentLocation() }
         self.predictionLoader = predictionLoader
         self.timelineLoader = timelineLoader
     }
@@ -105,7 +115,8 @@ final class ServerViewModel: ObservableObject {
             return
         }
         if coordinates != nil && hasLiveSky {
-            await refreshIfNeeded(force: true)
+            if useDeviceLocation { await loadDeviceLocation() }
+            else { await refreshIfNeeded() }
             return
         }
         if useDeviceLocation {
@@ -117,10 +128,18 @@ final class ServerViewModel: ObservableObject {
 
     func showSample() {
         requestID = UUID()
+        locationLookupID = UUID()
+        isLocating = false
+        locationManager.cancelCurrentLocationRequest()
+        invalidateGeocoding()
         clockTask?.cancel()
         timeline = nil
         predictions = nil
         scenes = [:]
+        forecastCoordinates = nil
+        retrievedAt = nil
+        scoreRetrievedAt = nil
+        isRefreshing = false
         forecastDays = [PrototypeDay.sampleDays[0]]
         skyScene = .fallback
         hasLiveSky = false
@@ -132,23 +151,41 @@ final class ServerViewModel: ObservableObject {
 
     func loadDeviceLocation() async {
         guard canLoadLive else { showSample(); return }
+        guard !isLocating else { return }
         useDeviceLocation = true
-        coordinates = nil
-        let id = beginRequest()
+        locationLookupID = UUID()
+        let lookupID = locationLookupID
+        invalidateGeocoding()
+        isLocating = true
+        defer {
+            if locationLookupID == lookupID { isLocating = false }
+        }
         do {
-            let location = try await locationManager.currentLocation()
-            guard requestID == id else { return }
+            let location = try await locationLoader()
+            guard locationLookupID == lookupID else { return }
             guard let resolved = ForecastCoordinates(
                 latitude: location.coordinate.latitude, longitude: location.coordinate.longitude,
                 altitudeMeters: location.verticalAccuracy >= 0 ? location.altitude : nil
             ) else { throw LocationProviderError.unavailable }
             coordinates = resolved
-            locationName = "Current location"
+            if hasLiveSky, let forecastCoordinates,
+               Self.distance(from: resolved, to: forecastCoordinates) <= Self.sameForecastAreaRadiusMeters {
+                self.coordinates = resolved
+                resolveLocationName(for: location, requestID: requestID, fallback: "Current location")
+                await refreshIfNeeded()
+                return
+            }
+            let id = beginRequest()
             resolveLocationName(for: location, requestID: id, fallback: "Current location")
             await fetch(resolved, id: id)
         } catch {
-            guard requestID == id else { return }
-            finishFailure(error.localizedDescription)
+            guard locationLookupID == lookupID else { return }
+            if hasLiveSky {
+                errorMessage = error.localizedDescription
+                rebuildPresentation()
+            } else {
+                finishFailure(error.localizedDescription)
+            }
         }
     }
 
@@ -174,7 +211,7 @@ final class ServerViewModel: ObservableObject {
 
     private func beginRequest() -> UUID {
         requestID = UUID()
-        geocoder.cancelGeocode()
+        invalidateGeocoding()
         clockTask?.cancel()
         clockTask = nil
         isLoading = true
@@ -189,6 +226,7 @@ final class ServerViewModel: ObservableObject {
         isLive = false
         selectedMoment = .now
         retrievedAt = nil
+        scoreRetrievedAt = nil
         lastRefreshAttempt = nil
         isRefreshing = false
         locationName = useDeviceLocation ? "Current location" : "Selected location"
@@ -208,22 +246,23 @@ final class ServerViewModel: ObservableObject {
         var failures: [String] = []
         switch sky {
         case .success(let value):
-            if value.targetDateIso != Self.localDate(now(), timezone: value.location.timezoneId) {
-                failures.append("Sky: the returned timeline is for a different local day.")
+            guard let responseCoordinates = Self.responseCoordinates(value.location) else {
+                failures.append("Sky: the server returned an invalid location.")
+                break
+            }
+            if value.targetDateIso != Self.localDate(now(), timezone: value.location.timezoneId)
+                || Self.distance(from: coordinates, to: responseCoordinates) > Self.sameForecastAreaRadiusMeters {
+                failures.append("Sky: the returned timeline is for a different day or location.")
             } else {
+                scenes = Self.makeScenes(for: value, at: now())
                 let sampler = SkySceneSampler(timeline: value)
-                for moment in SkyMoment.allCases {
-                    if let iso = moment.localIso(in: value.milestones),
-                       let scene = sampler.scene(atLocalIso: iso) {
-                        scenes[moment] = scene
-                    }
-                }
                 currentDate = now()
                 if let currentScene = sampler.scene(at: currentDate) {
                     scenes[.now] = currentScene
                 }
                 if !scenes.isEmpty {
                     timeline = value
+                    forecastCoordinates = coordinates
                     hasLiveSky = true
                     retrievedAt = now()
                 } else {
@@ -236,16 +275,11 @@ final class ServerViewModel: ObservableObject {
         switch score {
         case .success(let value):
             // Independent requests can resolve different days around local midnight.
-            let matching = value.predictions.filter { prediction in
-                guard let day = Self.localDate(now(), timezone: value.location.timezoneId),
-                      prediction.window.eventTimeIso.hasPrefix(day + "T") else { return false }
-                guard let timeline else { return true }
-                return prediction.window.eventTimeIso.hasPrefix(timeline.targetDateIso + "T")
-            }
-            if !matching.isEmpty {
-                predictions = SkyColorAPIResponse(location: value.location,
-                    generatedAtIso: value.generatedAtIso, predictions: matching)
+            if let matching = Self.matchingPredictions(value, coordinates: coordinates,
+                                                        timeline: timeline, at: now()) {
+                predictions = matching
                 hasLiveForecast = true
+                scoreRetrievedAt = now()
             } else {
                 failures.append("Score: no forecast for the displayed day.")
             }
@@ -283,10 +317,12 @@ final class ServerViewModel: ObservableObject {
         }
         skyScene = scenes[selectedMoment] ?? .fallback
         let partialAtmosphere = timeline.map { SkyTimelineSampler(timeline: $0).hasAtmosphericFallback } ?? false
-        let stale = retrievedAt.map { now().timeIntervalSince($0) > 1_800 } ?? false
-        if stale && hasLiveSky { skyScene = skyScene.withProvenance(.staleForecast) }
+        let skyStale = retrievedAt.map { now().timeIntervalSince($0) > 1_800 } ?? false
+        let scoreStale = scoreRetrievedAt.map { now().timeIntervalSince($0) > 1_800 } ?? true
+        if skyStale && hasLiveSky { skyScene = skyScene.withProvenance(.staleForecast) }
         let limited = hasLiveSky && skyScene.quality == .unavailable
-        isLive = hasLiveSky && hasLiveForecast && isScoreAvailable && !partialAtmosphere && !stale && !limited
+        isLive = hasLiveSky && hasLiveForecast && isScoreAvailable && !partialAtmosphere
+            && !skyStale && !scoreStale && !limited
         if let predictions, let day = ForecastMapper.makeDay(
             from: predictions, locationName: locationName,
             generatedRamp: hasLiveSky ? skyScene.base.ramp.map { Color(hex: $0) } : nil,
@@ -307,13 +343,21 @@ final class ServerViewModel: ObservableObject {
     }
 
     private func resolveLocationName(for location: CLLocation, requestID id: UUID, fallback: String) {
+        geocoder.cancelGeocode()
+        geocodeID = UUID()
+        let lookupID = geocodeID
         geocoder.reverseGeocodeLocation(location) { [weak self] placemarks, _ in
             Task { @MainActor [weak self] in
-                guard let self, self.requestID == id else { return }
+                guard let self, self.requestID == id, self.geocodeID == lookupID else { return }
                 self.locationName = Self.cityName(from: placemarks?.first) ?? fallback
                 self.rebuildPresentation()
             }
         }
+    }
+
+    private func invalidateGeocoding() {
+        geocodeID = UUID()
+        geocoder.cancelGeocode()
     }
 
     private static func cityName(from placemark: CLPlacemark?) -> String? {
@@ -346,7 +390,12 @@ final class ServerViewModel: ObservableObject {
 
     func setForeground(_ foreground: Bool) {
         isForeground = foreground
-        if foreground { Task { await refreshIfNeeded() } }
+        if foreground {
+            Task {
+                if self.useDeviceLocation { await self.loadDeviceLocation() }
+                else { await self.refreshIfNeeded() }
+            }
+        }
     }
 
     func refreshIfNeeded(force: Bool = false) async {
@@ -359,7 +408,7 @@ final class ServerViewModel: ObservableObject {
             await fetch(coordinates, id: id)
             return
         }
-        let age = date.timeIntervalSince(retrievedAt ?? .distantPast)
+        let age = date.timeIntervalSince(min(retrievedAt ?? .distantPast, scoreRetrievedAt ?? .distantPast))
         guard force || age >= 1_800 else { return }
         if !force, let lastRefreshAttempt, date.timeIntervalSince(lastRefreshAttempt) < 300 { return }
         isRefreshing = true
@@ -370,40 +419,40 @@ final class ServerViewModel: ObservableObject {
         let (scoreResult, skyResult) = await (score, sky)
         guard requestID == id else { return }
         isRefreshing = false
-        guard case .success(let fresh) = skyResult, fresh.targetDateIso == localDate else {
-            errorMessage = "Sky refresh failed; showing the earlier forecast."
-            rebuildPresentation()
-            return
-        }
-        let sampler = SkySceneSampler(timeline: fresh)
-        var replacement: [SkyMoment: SkyScene] = [:]
-        for moment in SkyMoment.allCases {
-            if let iso = moment.localIso(in: fresh.milestones), let scene = sampler.scene(atLocalIso: iso) {
-                replacement[moment] = scene
+        var failures: [String] = []
+        if case .success(let fresh) = skyResult,
+           fresh.targetDateIso == localDate,
+           let responseCoordinates = Self.responseCoordinates(fresh.location),
+           Self.distance(from: coordinates, to: responseCoordinates) <= Self.sameForecastAreaRadiusMeters {
+            let replacement = Self.makeScenes(for: fresh, at: date)
+            if !replacement.isEmpty {
+                self.timeline = fresh
+                scenes = replacement
+                forecastCoordinates = coordinates
+                retrievedAt = now()
+            } else {
+                failures.append("Sky refresh returned no usable moments.")
             }
+        } else {
+            failures.append("Sky refresh failed; showing the earlier forecast.")
         }
-        if let scene = sampler.scene(at: date) { replacement[.now] = scene }
-        guard !replacement.isEmpty else {
-            errorMessage = "Sky refresh returned no usable moments."
-            rebuildPresentation()
-            return
-        }
-        self.timeline = fresh
-        scenes = replacement
-        retrievedAt = now()
-        if case .success(let updated) = scoreResult {
-            let matching = updated.predictions.filter { $0.window.eventTimeIso.hasPrefix(localDate + "T") }
-            if !matching.isEmpty {
-                predictions = SkyColorAPIResponse(location: updated.location,
-                    generatedAtIso: updated.generatedAtIso, predictions: matching)
-                hasLiveForecast = true
-            }
+        if case .success(let updated) = scoreResult,
+           let matching = Self.matchingPredictions(updated, coordinates: coordinates,
+                                                    timeline: self.timeline, at: date) {
+            predictions = matching
+            hasLiveForecast = true
+            scoreRetrievedAt = now()
+        } else {
+            predictions = nil
+            hasLiveForecast = false
+            scoreRetrievedAt = nil
+            failures.append("Score refresh failed; showing sky details without a current score.")
         }
         if scenes[selectedMoment] == nil {
             selectedMoment = scenes[.now] != nil ? .now :
                 (SkyMoment.allCases.first { scenes[$0] != nil } ?? .now)
         }
-        errorMessage = nil
+        errorMessage = failures.isEmpty ? nil : failures.joined(separator: "\n")
         rebuildPresentation()
     }
 
@@ -415,6 +464,51 @@ final class ServerViewModel: ObservableObject {
         formatter.timeZone = timezone
         formatter.dateFormat = "yyyy-MM-dd"
         return formatter.string(from: date)
+    }
+
+    private static func distance(from first: ForecastCoordinates, to second: ForecastCoordinates) -> CLLocationDistance {
+        CLLocation(latitude: first.latitude, longitude: first.longitude).distance(
+            from: CLLocation(latitude: second.latitude, longitude: second.longitude))
+    }
+
+    private static func responseCoordinates(_ location: SkyDayTimelineResponse.ResolvedLocation) -> ForecastCoordinates? {
+        ForecastCoordinates(latitude: location.latitude, longitude: location.longitude,
+                            altitudeMeters: location.altitudeMeters)
+    }
+
+    private static func responseCoordinates(_ location: SkyColorAPIResponse.ResolvedLocation) -> ForecastCoordinates? {
+        ForecastCoordinates(latitude: location.latitude, longitude: location.longitude,
+                            altitudeMeters: location.altitudeMeters)
+    }
+
+    private static func makeScenes(for timeline: SkyDayTimelineResponse, at date: Date) -> [SkyMoment: SkyScene] {
+        let sampler = SkySceneSampler(timeline: timeline)
+        var result: [SkyMoment: SkyScene] = [:]
+        for moment in SkyMoment.allCases {
+            if let iso = moment.localIso(in: timeline.milestones),
+               let scene = sampler.scene(atLocalIso: iso) {
+                result[moment] = scene
+            }
+        }
+        if let current = sampler.scene(at: date) { result[.now] = current }
+        return result
+    }
+
+    private static func matchingPredictions(
+        _ response: SkyColorAPIResponse,
+        coordinates: ForecastCoordinates,
+        timeline: SkyDayTimelineResponse?,
+        at date: Date
+    ) -> SkyColorAPIResponse? {
+        guard let responseCoordinates = responseCoordinates(response.location),
+              distance(from: coordinates, to: responseCoordinates) <= sameForecastAreaRadiusMeters,
+              timeline.map({ $0.location.timezoneId == response.location.timezoneId }) ?? true,
+              let day = timeline?.targetDateIso ?? localDate(date, timezone: response.location.timezoneId)
+        else { return nil }
+        let matching = response.predictions.filter { $0.window.eventTimeIso.hasPrefix(day + "T") }
+        guard !matching.isEmpty else { return nil }
+        return SkyColorAPIResponse(location: response.location, generatedAtIso: response.generatedAtIso,
+                                   predictions: matching)
     }
 
     private static func localHour(_ date: Date, timezone: String) -> Int? {

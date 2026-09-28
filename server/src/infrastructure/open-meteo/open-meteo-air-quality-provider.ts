@@ -4,6 +4,7 @@ import { isLocalIsoWithinRange } from "../../application/services/local-date-tim
 import type { AirQualitySample } from "../../domain";
 import type { OpenMeteoAirQualityResponse } from "./open-meteo-types";
 import { OpenMeteoClient } from "./open-meteo-client";
+import { normalizeOpenMeteoLocalTimestamp } from "./local-timestamp";
 
 export class OpenMeteoAirQualityProvider implements AirQualityProvider {
   constructor(private readonly client: OpenMeteoClient) {}
@@ -33,7 +34,7 @@ export class OpenMeteoAirQualityProvider implements AirQualityProvider {
 
     return hourly.time
       .map((timeIso, index) => ({
-        timeIso: normalizeLocalIso(timeIso),
+        timeIso: normalizeOpenMeteoLocalTimestamp(timeIso),
         aerosolOpticalDepth: hourly.aerosol_optical_depth?.[index] ?? null,
         particulateMatter2_5UgM3: hourly.pm2_5?.[index] ?? null,
         particulateMatter10UgM3: hourly.pm10?.[index] ?? null,
@@ -42,8 +43,4 @@ export class OpenMeteoAirQualityProvider implements AirQualityProvider {
       }))
       .filter((sample) => isLocalIsoWithinRange(sample.timeIso, input.range));
   }
-}
-
-function normalizeLocalIso(value: string): string {
-  return value.length === 16 ? `${value}:00` : value.replace("Z", "");
 }

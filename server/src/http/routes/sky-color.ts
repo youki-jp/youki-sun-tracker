@@ -1,6 +1,12 @@
 import { Hono } from "hono";
 import type { SkyColorPredictionRequest, SkyEventKind } from "../../domain";
 import { ValidationError } from "../../application/errors";
+import {
+  isRecord,
+  optionalDateString,
+  parseLocation,
+  readJsonBody,
+} from "./request-validation";
 import type { PredictSkyColorService } from "../../application/services/predict-sky-color-service";
 
 export function createSkyColorRouter(service: PredictSkyColorService) {
@@ -28,12 +34,6 @@ export function createSkyColorRouter(service: PredictSkyColorService) {
 
 type RequestShape = "flat" | "nested";
 
-async function readJsonBody(request: Request): Promise<unknown> {
-  return request.json().catch(() => {
-    throw new ValidationError("Request body must be valid JSON.");
-  });
-}
-
 function parseSkyColorRequest(
   payload: unknown,
   shape: RequestShape,
@@ -44,27 +44,10 @@ function parseSkyColorRequest(
 
   const locationPayload = shape === "flat" ? payload : payload.location;
 
-  if (!isRecord(locationPayload)) {
-    throw new ValidationError("location is required.");
-  }
-
-  const fieldPrefix = shape === "flat" ? "" : "location.";
-  const latitude = requireNumber(
-    locationPayload.latitude,
-    `${fieldPrefix}latitude`,
+  const location = parseLocation(
+    locationPayload,
+    shape === "flat" ? "" : "location.",
   );
-  const longitude = requireNumber(
-    locationPayload.longitude,
-    `${fieldPrefix}longitude`,
-  );
-  const altitudeMeters = optionalNumber(
-    locationPayload.altitudeMeters,
-    `${fieldPrefix}altitudeMeters`,
-  );
-  if (latitude < -90 || latitude > 90 || longitude < -180 || longitude > 180 ||
-      (altitudeMeters !== null && (altitudeMeters < -500 || altitudeMeters > 9000))) {
-    throw new ValidationError("location is outside the supported range.");
-  }
   const targetDateIso = optionalDateString(
     payload.targetDateIso,
     "targetDateIso",
@@ -76,11 +59,7 @@ function parseSkyColorRequest(
   );
 
   return {
-    location: {
-      latitude,
-      longitude,
-      altitudeMeters,
-    },
+    location,
     targetDateIso,
     requestedEvents,
     includeFeatures,
@@ -93,6 +72,7 @@ function parseRequestedEvents(value: unknown): SkyEventKind[] {
   }
 
   if (!Array.isArray(value) || value.length === 0) {
+    // Keep one stable client error for invalid event-list shapes.
     throw new ValidationError(
       "requestedEvents must be a non-empty array when provided.",
     );
@@ -112,49 +92,10 @@ function parseRequestedEvents(value: unknown): SkyEventKind[] {
   return [...events];
 }
 
-function requireNumber(value: unknown, fieldName: string): number {
-  if (typeof value !== "number" || !Number.isFinite(value)) {
-    throw new ValidationError(`${fieldName} must be a number.`);
-  }
-
-  return value;
-}
-
-function optionalNumber(value: unknown, fieldName: string): number | null {
-  if (value === undefined || value === null) {
-    return null;
-  }
-
-  return requireNumber(value, fieldName);
-}
-
 function optionalBoolean(value: unknown, fieldName: string): boolean {
-  if (value === undefined || value === null) {
-    return false;
-  }
-
+  if (value === undefined || value === null) return false;
   if (typeof value !== "boolean") {
     throw new ValidationError(`${fieldName} must be a boolean.`);
   }
-
   return value;
-}
-
-function optionalDateString(
-  value: unknown,
-  fieldName: string,
-): string | null {
-  if (value === undefined || value === null) {
-    return null;
-  }
-
-  if (typeof value !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(value)) {
-    throw new ValidationError(`${fieldName} must be a YYYY-MM-DD string.`);
-  }
-
-  return value;
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null;
 }

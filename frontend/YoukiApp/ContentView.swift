@@ -8,7 +8,6 @@ struct ContentView: View {
     @State var isSkyExpanded = false
     @State var activeSheet: ActiveSheet?
     @StateObject var alarmModel = GoldenHourAlarmViewModel()
-    @State var sunsetAlertEnabled = false
     @State var showAccountScreen = false
     @State var showCalendarInfo = false
     @State var manualLatitude = ""

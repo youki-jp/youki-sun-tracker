@@ -21,6 +21,7 @@ import {
 import { calculateSolarPosition } from "../solar/solar-position";
 import type { OpenMeteoDailyForecastResponse } from "./open-meteo-types";
 import { OpenMeteoClient } from "./open-meteo-client";
+import { normalizeOpenMeteoLocalTimestamp } from "./local-timestamp";
 
 const SAMPLE_INTERVAL_MINUTES = 15;
 
@@ -255,7 +256,7 @@ function getEventTimeIso(
     throw new ValidationError(`Open-Meteo did not return ${kind} for the target day.`);
   }
 
-  return normalizeLocalIso(eventTime);
+  return normalizeOpenMeteoLocalTimestamp(eventTime);
 }
 
 function mapElevationToTwilightPhase(elevationDegrees: number): TwilightPhase {
@@ -276,10 +277,6 @@ function mapElevationToTwilightPhase(elevationDegrees: number): TwilightPhase {
   }
 
   return "night";
-}
-
-function normalizeLocalIso(value: string): string {
-  return value.length === 16 ? `${value}:00` : value.replace("Z", "");
 }
 
 function formatLocalSampleTime(date: Date): string {

@@ -35,6 +35,8 @@
 		A1000000000000000000001A /* AlarmKitScheduler.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1000000000000000000001A /* AlarmKitScheduler.swift */; };
 		A1000000000000000000001B /* GoldenHourAlarmSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1000000000000000000001B /* GoldenHourAlarmSheet.swift */; };
 		A1000000000000000000001C /* GoldenHourAlarmPlanner.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1000000000000000000001C /* GoldenHourAlarmPlanner.swift */; };
+		A10000000000000000000020 /* AccountEntryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000020 /* AccountEntryView.swift */; };
+		A10000000000000000000021 /* AccountManagementView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000021 /* AccountManagementView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -79,6 +81,8 @@
 		B1000000000000000000001A /* AlarmKitScheduler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AlarmKitScheduler.swift; sourceTree = "<group>"; };
 		B1000000000000000000001B /* GoldenHourAlarmSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GoldenHourAlarmSheet.swift; sourceTree = "<group>"; };
 		B1000000000000000000001C /* GoldenHourAlarmPlanner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GoldenHourAlarmPlanner.swift; sourceTree = "<group>"; };
+		B10000000000000000000020 /* AccountEntryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AccountEntryView.swift; sourceTree = "<group>"; };
+		B10000000000000000000021 /* AccountManagementView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AccountManagementView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -124,6 +128,8 @@
 				B1000000000000000000000C /* SkyColorAPI.swift */,
 				B1000000000000000000001D /* AuthSession.swift */,
 				B1000000000000000000001E /* AccountScreen.swift */,
+				B10000000000000000000020 /* AccountEntryView.swift */,
+				B10000000000000000000021 /* AccountManagementView.swift */,
 				B1000000000000000000000D /* LocationManager.swift */,
 				B1000000000000000000000E /* ForecastMapper.swift */,
 				B1000000000000000000000F /* SkyDayTimelineAPI.swift */,
@@ -263,6 +269,8 @@
 				A1000000000000000000000C /* SkyColorAPI.swift in Sources */,
 				A1000000000000000000001D /* AuthSession.swift in Sources */,
 				A1000000000000000000001E /* AccountScreen.swift in Sources */,
+				A10000000000000000000020 /* AccountEntryView.swift in Sources */,
+				A10000000000000000000021 /* AccountManagementView.swift in Sources */,
 				A1000000000000000000000D /* LocationManager.swift in Sources */,
 				A1000000000000000000000E /* ForecastMapper.swift in Sources */,
 				A1000000000000000000000F /* SkyDayTimelineAPI.swift in Sources */,
