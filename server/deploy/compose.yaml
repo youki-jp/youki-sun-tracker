@@ -1,0 +1,40 @@
+services:
+  api:
+    build:
+      context: ../..
+      dockerfile: server/Dockerfile
+    restart: unless-stopped
+    env_file:
+      - ../.env.production
+    environment:
+      NODE_ENV: production
+      PORT: "3000"
+      SQLITE_PATH: /data/youki.sqlite
+    volumes:
+      - youki_data:/data
+    ports:
+      - "127.0.0.1:3000:3000"
+
+  caddy:
+    image: caddy:2
+    restart: unless-stopped
+    environment:
+      API_DOMAIN: ${API_DOMAIN:?Set API_DOMAIN in server/deploy/.env}
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - api
+
+volumes:
+  youki_data:
+    name: youki_sqlite_data
+  caddy_data:
+    name: youki_caddy_data
+  caddy_config:
+    name: youki_caddy_config
