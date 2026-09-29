@@ -44,12 +44,10 @@ The repository deploys the server to one Ubuntu Droplet whenever a commit is pus
 
 ## GitHub configuration
 
-In the repository's **Settings → Secrets and variables → Actions**, add these repository variables:
+In the repository's **Settings → Secrets and variables → Actions → Secrets**, add these repository secrets:
 
 - `DROPLET_HOST`: the Droplet's public IP or SSH hostname.
 - `DROPLET_USER`: `deploy` (or the user configured above).
-
-Add these repository secrets:
 
 - `DROPLET_SSH_PRIVATE_KEY`: private key whose public key is authorized for the deploy user.
 - `DROPLET_SSH_KNOWN_HOSTS`: the verified SSH host-key line for the Droplet. Verify its fingerprint from the Droplet console before storing it; the workflow enforces strict host-key checking.

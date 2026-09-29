@@ -19,15 +19,15 @@ jobs:
     steps:
       - name: Deploy the merged commit
         env:
-          DROPLET_HOST: ${{ vars.DROPLET_HOST }}
-          DROPLET_USER: ${{ vars.DROPLET_USER }}
+          DROPLET_HOST: ${{ secrets.DROPLET_HOST }}
+          DROPLET_USER: ${{ secrets.DROPLET_USER }}
           SSH_PRIVATE_KEY: ${{ secrets.DROPLET_SSH_PRIVATE_KEY }}
           SSH_KNOWN_HOSTS: ${{ secrets.DROPLET_SSH_KNOWN_HOSTS }}
           DEPLOY_SHA: ${{ github.sha }}
         run: |
           set -euo pipefail
-          : "${DROPLET_HOST:?Set the DROPLET_HOST repository variable}"
-          : "${DROPLET_USER:?Set the DROPLET_USER repository variable}"
+          : "${DROPLET_HOST:?Set the DROPLET_HOST repository secret}"
+          : "${DROPLET_USER:?Set the DROPLET_USER repository secret}"
           : "${SSH_PRIVATE_KEY:?Set the DROPLET_SSH_PRIVATE_KEY repository secret}"
           : "${SSH_KNOWN_HOSTS:?Set the DROPLET_SSH_KNOWN_HOSTS repository secret}"
 
