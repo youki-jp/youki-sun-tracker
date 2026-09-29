@@ -36,7 +36,9 @@ struct AccountEntryView: View {
                 signInView
             case .testAccount:
                 #if DEBUG
-                if AppConfig.serverURL.host == "localhost" { localTestAccountView }
+                if ["localhost", "127.0.0.1"].contains(AppConfig.serverURL.host ?? "") {
+                    localTestAccountView
+                }
                 else { signInView }
                 #else
                 signInView
@@ -156,7 +158,7 @@ struct AccountEntryView: View {
                 .accessibilityIdentifier("createAccountEntryLink")
 
                 #if DEBUG
-                if AppConfig.serverURL.host == "localhost" {
+                if ["localhost", "127.0.0.1"].contains(AppConfig.serverURL.host ?? "") {
                     Button("Use a local test account") { mode = .testAccount }
                         .font(.system(size: 12, weight: .medium, design: .rounded))
                         .foregroundStyle(inkColor.opacity(0.55))

@@ -96,16 +96,17 @@ extension ContentView {
     }
 
     var settingsSheet: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            Text("Settings")
+        let japanese = appLanguage == "ja"
+        return VStack(alignment: .leading, spacing: 0) {
+            Text(japanese ? "設定" : "Settings")
                 .font(.system(size: 18, weight: .bold, design: .rounded))
                 .padding(.bottom, 12)
 
             HStack {
                 VStack(alignment: .leading, spacing: 2) {
-                    Text("Theme")
+                    Text(japanese ? "テーマ" : "Theme")
                         .font(.system(size: 14, weight: .semibold, design: .rounded))
-                    Text("Preview the light and dark mock")
+                    Text(japanese ? "ライト・ダーク表示を切り替え" : "Preview the light and dark mock")
                         .font(.system(size: 11.5, weight: .medium, design: .rounded))
                         .foregroundStyle(inkColor.opacity(0.55))
                 }
@@ -127,13 +128,42 @@ extension ContentView {
                 Divider()
             }
 
+            HStack {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(japanese ? "言語" : "Language")
+                        .font(.system(size: 14, weight: .semibold, design: .rounded))
+                    Text(japanese ? "表示言語を選択" : "Choose your display language")
+                        .font(.system(size: 11.5, weight: .medium, design: .rounded))
+                        .foregroundStyle(inkColor.opacity(0.55))
+                }
+
+                Spacer()
+
+                Picker(japanese ? "言語" : "Language", selection: $appLanguage) {
+                    Text("English").tag("en")
+                    Text("日本語").tag("ja")
+                }
+                .labelsHidden()
+                .pickerStyle(.segmented)
+                .frame(width: 142)
+                .accessibilityIdentifier("languagePicker")
+            }
+            .padding(.vertical, 12)
+            .overlay(alignment: .bottom) {
+                Divider()
+            }
+
             settingsRow(
-                title: "Account",
+                title: japanese ? "アカウント" : "Account",
                 subtitle: authSession.isAuthenticated
-                    ? (authSession.account?.tier == "pro" ? "Youki Pro · lifetime" : "Free account")
-                    : "Sign in for your live sky"
+                    ? (authSession.account?.tier == "pro"
+                        ? (japanese ? "Youki Pro · 永続" : "Youki Pro · lifetime")
+                        : (japanese ? "無料アカウント" : "Free account"))
+                    : (japanese ? "サインインして空の予報を見る" : "Sign in for your live sky")
             ) {
-                Button(authSession.isAuthenticated ? "Manage" : "Sign in") {
+                Button(authSession.isAuthenticated
+                       ? (japanese ? "管理" : "Manage")
+                       : (japanese ? "サインイン" : "Sign in")) {
                     activeSheet = nil
                     showAccountScreen = true
                 }
@@ -146,8 +176,10 @@ extension ContentView {
             }
 
             settingsToggleRow(
-                title: "Golden-hour alarm",
-                subtitle: alarmModel.scheduled != nil ? "An alarm is scheduled." : "Choose sunrise or sunset and a lead time.",
+                title: japanese ? "ゴールデンアワーのアラーム" : "Golden-hour alarm",
+                subtitle: alarmModel.scheduled != nil
+                    ? (japanese ? "アラームを設定しました。" : "An alarm is scheduled.")
+                    : (japanese ? "日の出・日の入りと通知時間を選択。" : "Choose sunrise or sunset and a lead time."),
                 isOn: Binding(get: { alarmModel.scheduled != nil }, set: { enabled in
                     if enabled { activeSheet = .alarm }
                     else { Task { await alarmModel.cancel() } }
@@ -162,7 +194,8 @@ extension ContentView {
                     .foregroundStyle(accentColor)
             }
 
-            settingsRow(title: "Sunset alerts", subtitle: "Coming later") { EmptyView() }
+            settingsRow(title: japanese ? "日の入り通知" : "Sunset alerts",
+                        subtitle: japanese ? "今後対応予定" : "Coming later") { EmptyView() }
             .accessibilityIdentifier("sunsetAlertsRow")
 
             Button {
@@ -170,9 +203,9 @@ extension ContentView {
             } label: {
                 HStack {
                     VStack(alignment: .leading, spacing: 2) {
-                        Text("Locations")
+                        Text(japanese ? "場所" : "Locations")
                             .font(.system(size: 14, weight: .semibold, design: .rounded))
-                        Text("Manage your forecast location")
+                        Text(japanese ? "予報する場所を管理" : "Manage your forecast location")
                             .font(.system(size: 11.5, weight: .medium, design: .rounded))
                             .foregroundStyle(inkColor.opacity(0.55))
                     }

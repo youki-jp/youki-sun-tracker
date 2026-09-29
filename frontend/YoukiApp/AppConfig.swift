@@ -15,9 +15,18 @@ enum AppConfig {
         if let configuredValue,
            !configuredValue.isEmpty,
            let url = URL(string: configuredValue),
-           (url.scheme == "https" || (url.scheme == "http" && url.host == "localhost")) {
+           url.scheme == "https" {
             return url
         }
+
+        #if DEBUG
+        if let configuredValue,
+           let url = URL(string: configuredValue),
+           url.scheme == "http",
+           ["localhost", "127.0.0.1"].contains(url.host ?? "") {
+            return url
+        }
+        #endif
 
         guard let fallbackURL = URL(string: defaultServerURLString) else {
             preconditionFailure("Default server URL must be valid.")
