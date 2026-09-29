@@ -15,6 +15,7 @@ struct ContentView: View {
     @State var manualAltitude = ""
     @FocusState var coordinateFocus: String?
     @State var appTheme: AppTheme = .dark
+    @AppStorage("appLanguage") var appLanguage = "en"
     @Environment(\.scenePhase) private var scenePhase
 
     var backgroundColor: Color { appTheme.backgroundColor }
