@@ -54,7 +54,7 @@ In the repository's **Settings → Secrets and variables → Actions → Secrets
 
 Copy the contents of `youki-droplet-deploy` (the **private** key) into `DROPLET_SSH_PRIVATE_KEY`; install `youki-droplet-deploy.pub` on the Droplet. To prepare the known-hosts value, get the host key with `ssh-keyscan -H YOUR_DROPLET_HOST`, then compare its fingerprint with `ssh-keygen -lf /etc/ssh/ssh_host_ed25519_key.pub` from the Droplet console before saving it.
 
-After the workflow is merged to `develop`, every push to `develop` deploys that exact commit. Check the **Actions** tab for build, migration, restart, and health-check results. The workflow skips an older queued commit if `develop` has already advanced.
+After the workflow is merged to `develop`, every push to `develop` deploys that exact commit. You can also use **Actions → Deploy Youki server to Droplet → Run workflow** for an initial deployment or manual redeploy. Check the **Actions** tab for build, migration, restart, and health-check results. The workflow skips an older queued commit if `develop` has already advanced.
 
 Verify the public endpoint with:
 
