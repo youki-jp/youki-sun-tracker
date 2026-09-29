@@ -9,3 +9,6 @@ xcuserdata/
 server/node_modules/
 DerivedData/
 build/
+server/.env.production
+server/deploy/.env
+server/data/

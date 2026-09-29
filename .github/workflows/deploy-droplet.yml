@@ -1,0 +1,70 @@
+name: Deploy Youki server to Droplet
+
+on:
+  push:
+    branches:
+      - develop
+
+permissions:
+  contents: read
+
+concurrency:
+  group: youki-droplet-deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Deploy the merged commit
+        env:
+          DROPLET_HOST: ${{ vars.DROPLET_HOST }}
+          DROPLET_USER: ${{ vars.DROPLET_USER }}
+          SSH_PRIVATE_KEY: ${{ secrets.DROPLET_SSH_PRIVATE_KEY }}
+          SSH_KNOWN_HOSTS: ${{ secrets.DROPLET_SSH_KNOWN_HOSTS }}
+          DEPLOY_SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          : "${DROPLET_HOST:?Set the DROPLET_HOST repository variable}"
+          : "${DROPLET_USER:?Set the DROPLET_USER repository variable}"
+          : "${SSH_PRIVATE_KEY:?Set the DROPLET_SSH_PRIVATE_KEY repository secret}"
+          : "${SSH_KNOWN_HOSTS:?Set the DROPLET_SSH_KNOWN_HOSTS repository secret}"
+
+          install -m 700 -d "$HOME/.ssh"
+          printf '%s\n' "$SSH_PRIVATE_KEY" > "$HOME/.ssh/deploy_key"
+          printf '%s\n' "$SSH_KNOWN_HOSTS" > "$HOME/.ssh/known_hosts"
+          chmod 600 "$HOME/.ssh/deploy_key" "$HOME/.ssh/known_hosts"
+
+          ssh -i "$HOME/.ssh/deploy_key" \
+            -o IdentitiesOnly=yes \
+            -o BatchMode=yes \
+            -o StrictHostKeyChecking=yes \
+            "$DROPLET_USER@$DROPLET_HOST" "bash -s -- '$DEPLOY_SHA'" <<'REMOTE'
+          set -euo pipefail
+          deploy_sha="$1"
+          cd /opt/youki
+
+          git fetch origin develop
+          if [ "$(git rev-parse origin/develop)" != "$deploy_sha" ]; then
+            echo "Skipping stale deploy $deploy_sha; develop has moved on."
+            exit 0
+          fi
+          git checkout --detach "$deploy_sha"
+
+          compose=(docker compose --env-file server/deploy/.env -f server/deploy/compose.yaml)
+          "${compose[@]}" build api
+          "${compose[@]}" pull caddy
+          "${compose[@]}" run --rm api bun scripts/migrate.ts
+          "${compose[@]}" up -d --remove-orphans
+
+          for attempt in {1..12}; do
+            if curl --fail --silent --show-error http://127.0.0.1:3000/api/v1/health; then
+              exit 0
+            fi
+            sleep 5
+          done
+
+          "${compose[@]}" logs --tail=100 api caddy
+          exit 1
+          REMOTE
