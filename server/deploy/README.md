@@ -43,8 +43,8 @@ The repository deploys the server to one Ubuntu Droplet whenever a commit is pus
    ```sh
    cd /opt/youki
    docker compose --env-file server/deploy/.env -f server/deploy/compose.yaml build api
-   docker compose --env-file server/deploy/.env -f server/deploy/compose.yaml run --rm api bun scripts/migrate.ts
-   docker compose --env-file server/deploy/.env -f server/deploy/compose.yaml run --rm api bun scripts/seed-test-users.ts --if-temporary
+   docker compose --env-file server/deploy/.env -f server/deploy/compose.yaml run --rm -T --interactive=false api bun scripts/migrate.ts
+   docker compose --env-file server/deploy/.env -f server/deploy/compose.yaml run --rm -T --interactive=false api bun scripts/seed-test-users.ts --if-temporary
    docker compose --env-file server/deploy/.env -f server/deploy/compose.yaml up -d
    ```
 
@@ -78,3 +78,5 @@ The iOS Release build must also use this HTTPS hostname in `AppConfig.defaultSer
 After these code changes are merged to `develop`, replace the contents of `server/.env.production` with just `AUTH_MODE=temporary` and `YOOKI_TEST_USER_PASSWORD` as above. Remove all placeholder `APPLE_*` lines. Run the workflow on the latest `develop` commit from the Actions tab, or push a new commit to `develop`.
 
 Seeding is idempotent and preserves existing account IDs and sessions. A deleted test account is recreated on the next deployment that seeds accounts. The four accounts share the configured password and their account quotas are shared between testers using the same account. Test login is limited to 30 attempts per minute for the server. Keep port 3000 bound to loopback and access the API over Caddy HTTPS.
+
+CI migration and seed containers run without interactive input so they cannot consume the remaining remote SSH deployment script. A successful deployment log must include container startup, the database readiness response, and `Deployment ready for commit <SHA>`.
