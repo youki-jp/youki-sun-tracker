@@ -21,6 +21,10 @@ private struct AuthTokens: Codable {
 }
 
 private struct AuthChallenge: Decodable { let nonce: String }
+private struct AuthConfiguration: Decodable {
+    let appleSignInEnabled: Bool
+    let testLoginEnabled: Bool
+}
 
 private enum SessionError: LocalizedError, Equatable {
     case signInRequired
@@ -44,6 +48,7 @@ final class AuthSession: ObservableObject {
     @Published private(set) var isAuthenticated = false
     @Published private(set) var errorMessage: String?
     @Published private(set) var appleNonce: String?
+    @Published private(set) var temporaryLoginEnabled = false
     @Published private(set) var cooldownUntil: Date?
 
     private var tokens: AuthTokens?
@@ -65,9 +70,23 @@ final class AuthSession: ObservableObject {
         return bytes.map { String(format: "%02x", $0) }.joined()
     }
 
-    func prepareAppleSignIn() async {
+    func prepareSignIn() async {
         errorMessage = nil
+        appleNonce = nil
         do {
+            let configRequest = URLRequest(url: AppConfig.serverURL.appendingPathComponent("api/v1/auth/config"))
+            let (configData, configResponse) = try await URLSession.shared.data(for: configRequest)
+            let configStatus = (configResponse as? HTTPURLResponse)?.statusCode
+            if configStatus == 200 {
+                let config = try JSONDecoder().decode(AuthConfiguration.self, from: configData)
+                temporaryLoginEnabled = !config.appleSignInEnabled && config.testLoginEnabled
+                if temporaryLoginEnabled { return }
+                guard config.appleSignInEnabled else {
+                    throw SessionError.server("Sign-in is currently unavailable.")
+                }
+            } else if configStatus != 404 {
+                throw SessionError.invalidResponse
+            }
             var request = URLRequest(url: AppConfig.serverURL.appendingPathComponent("api/v1/auth/challenge"))
             request.httpMethod = "POST"
             let (data, response) = try await URLSession.shared.data(for: request)
@@ -93,12 +112,11 @@ final class AuthSession: ObservableObject {
             errorMessage = nil
         } catch {
             let message = error.localizedDescription
-            await prepareAppleSignIn()
+            await prepareSignIn()
             errorMessage = message
         }
     }
 
-    #if DEBUG
     func signInLocalTestUser(email: String, password: String) async {
         errorMessage = nil
         do {
@@ -110,7 +128,6 @@ final class AuthSession: ObservableObject {
             errorMessage = error.localizedDescription
         }
     }
-    #endif
 
     func send(_ original: URLRequest) async throws -> (Data, URLResponse) {
         guard tokens != nil else { throw SessionError.signInRequired }

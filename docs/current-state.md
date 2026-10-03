@@ -1,6 +1,6 @@
 # Current Project State
 
-Updated: 2026-09-28
+Updated: 2026-10-03
 
 Auth update (2026-09-28): source now includes Sign in with Apple, SQLite-backed Youki sessions and Free/Pro entitlements, authenticated forecast routes, and shared quota counters. Drizzle manages SQLite migrations. This has not been deployed or verified end-to-end against live Apple services. See [auth implementation](auth-implementation.md) for the authoritative auth status.
 
@@ -79,7 +79,7 @@ The screen also requests `POST /api/v1/sky-day/timeline`, interpolates solar/wea
 - The calendar still displays the one live target day; it does not yet load a full seven-day set from the timeline endpoint.
 - The iOS target has no standalone unit-test target for the Swift math; simulator app/UI-target builds remain the available verification seam.
 - Weather and air-quality inputs remain hourly upstream; the client samples radiation and cloud inputs for the selected minute. The semantic scoring path intentionally retains nearest-sample behavior.
-- There is no CI workflow or production deployment configuration beyond the Dockerfile and DigitalOcean notes.
+- A Droplet CI/CD workflow now deploys pushes to `develop` using Docker Compose, Caddy HTTPS, and persistent SQLite. Temporary auth mode works without Apple credentials and exposes the existing test-account login. Live deployment and off-Droplet backups remain unverified. See [deployment setup](../server/deploy/README.md).
 
 ## Backend API
 

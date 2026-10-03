@@ -9,20 +9,23 @@ const hash = (value: string) => createHash("sha256").update(value).digest("hex")
 const token = () => randomBytes(32).toString("base64url");
 
 export class AuthService {
-  constructor(private readonly store: AuthStore, private readonly apple: AppleIdentityVerifier,
-    private readonly appleTokens: AppleTokens, private readonly localTestUsers?: LocalTestUsers) {}
+  constructor(private readonly store: AuthStore, private readonly apple?: AppleIdentityVerifier,
+    private readonly appleTokens?: AppleTokens, private readonly localTestUsers?: LocalTestUsers) {}
 
+  get appleSignInEnabled(): boolean { return this.apple !== undefined && this.appleTokens !== undefined; }
   get localTestLoginEnabled(): boolean { return this.localTestUsers !== undefined; }
 
   ready(): Promise<boolean> { return this.store.ready(); }
 
   async challenge(): Promise<{ nonce: string }> {
+    if (!this.appleSignInEnabled) throw new AppError("Apple sign-in is disabled.", "not_found", 404);
     const nonce = token();
     await this.store.saveChallenge(hash(nonce));
     return { nonce };
   }
 
   async signIn(identityToken: string, authorizationCode: string, nonce: string) {
+    if (!this.apple || !this.appleTokens) throw new AppError("Apple sign-in is disabled.", "not_found", 404);
     if (!await this.store.consumeChallenge(hash(nonce))) {
       throw new AppError("Sign-in challenge expired.", "invalid_challenge", 401);
     }
@@ -88,7 +91,10 @@ export class AuthService {
       throw new AppError("Sign out and sign in again before deleting your account.", "recent_sign_in_required", 403);
     }
     const encryptedToken = await this.store.appleRefreshToken(account.id);
-    if (encryptedToken) await this.appleTokens.revoke(encryptedToken);
+    if (encryptedToken) {
+      if (!this.appleTokens) throw new AppError("Account deletion is temporarily unavailable.", "deletion_unavailable", 503);
+      await this.appleTokens.revoke(encryptedToken);
+    }
     else if (!await this.localTestUsers?.owns(account.id)) {
       throw new AppError("Account deletion is temporarily unavailable.", "deletion_unavailable", 503);
     }

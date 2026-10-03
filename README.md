@@ -21,7 +21,7 @@ bun run migrate
 bun run dev
 ```
 
-The server uses a local SQLite database at `server/data/youki.sqlite` by default. `bun run migrate` applies versioned Drizzle migrations. To use another file, set `SQLITE_PATH`; production requires an absolute path on persistent storage. Startup also requires `APPLE_CLIENT_ID`, `APPLE_TEAM_ID`, `APPLE_KEY_ID`, `APPLE_PRIVATE_KEY`, and `APPLE_TOKEN_ENCRYPTION_KEY`. See the [account implementation guide](docs/auth-implementation.md).
+The server uses a local SQLite database at `server/data/youki.sqlite` by default. `bun run migrate` applies versioned Drizzle migrations. To use another file, set `SQLITE_PATH`; production requires an absolute path on persistent storage. For local testing without Apple credentials, run `YOOKI_TEST_USER_PASSWORD=admin bun run dev:test-users` instead of `bun run dev`. For Apple sign-in, startup requires `APPLE_CLIENT_ID`, `APPLE_TEAM_ID`, `APPLE_KEY_ID`, `APPLE_PRIVATE_KEY`, and `APPLE_TOKEN_ENCRYPTION_KEY`. See the [account implementation guide](docs/auth-implementation.md).
 
 To generate a migration after editing the Drizzle schema, run `bun run migration:generate` and review its SQL. Use `bun run backup -- /absolute/path/to/backup.sqlite` to create and verify a consistent local backup.
 
@@ -64,4 +64,4 @@ The SwiftUI app now has Sign in with Apple and a server-backed Free/Pro account 
 
 ## Deployment
 
-The SQLite build is not ready for App Platform deployment because its local filesystem is ephemeral. The next hosting step is a single Droplet with a persistent SQLite path, HTTPS, backups, and a new CI/CD target. See the [implementation guide](docs/auth-implementation.md). The iOS release URL still points to the App Platform hostname until that cutover.
+The server deploys to a single DigitalOcean Droplet on pushes to `develop`, using Docker Compose, persistent SQLite storage, and Caddy HTTPS. `AUTH_MODE=temporary` supports the existing Free/Pro test accounts without any Apple credentials. Follow the [Droplet deployment guide](server/deploy/README.md) for setup and GitHub secrets. Deployment and off-Droplet backups still need live verification. The iOS release URL still points to the App Platform hostname until that cutover.

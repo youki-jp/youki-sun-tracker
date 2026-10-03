@@ -1,7 +1,7 @@
 # Youki account implementation
 
 Status: Implemented locally with SQLite; not deployed or verified with live Apple credentials.
-Updated: 2026-09-28
+Updated: 2026-10-03
 
 The Bun/Hono server owns accounts, sessions, Free/Pro entitlements, and request quotas. The native iOS app uses Sign in with Apple and stores Youki session tokens in Keychain. Payment remains deferred. SQLite replaces the earlier PostgreSQL storage code; DigitalOcean migration is a separate follow-up.
 
@@ -18,11 +18,11 @@ From `server/`, run `bun install` and `bun run migrate`. This applies versioned 
 
 Change the [Drizzle schema](../server/src/infrastructure/auth/sqlite-schema.ts), run `bun run migration:generate`, review the generated SQL, then run `bun run migrate`. Drizzle manages SQLite migrations; it does not automatically transfer data or translate migrations to PostgreSQL.
 
-The server also requires `APPLE_CLIENT_ID`, `APPLE_TEAM_ID`, `APPLE_KEY_ID`, `APPLE_PRIVATE_KEY`, and `APPLE_TOKEN_ENCRYPTION_KEY` (32 random bytes encoded as base64). Preserve the encryption key across restarts and backups; changing it without re-encrypting stored tokens breaks Apple revocation and account deletion.
+With `AUTH_MODE=apple` (the default), the server requires `APPLE_CLIENT_ID`, `APPLE_TEAM_ID`, `APPLE_KEY_ID`, `APPLE_PRIVATE_KEY`, and `APPLE_TOKEN_ENCRYPTION_KEY` (32 random bytes encoded as base64). Preserve the encryption key across restarts and backups; changing it without re-encrypting stored tokens breaks Apple revocation and account deletion.
 
 ## Local Free and Pro test accounts
 
-From `server/`, run `YOOKI_TEST_USER_PASSWORD=admin bun run dev:test-users`. This applies migrations, idempotently seeds the four accounts below in the local SQLite database, and serves the test-login route on loopback only. Set `PORT` if 3000 is occupied. The helper generates temporary Apple test keys only to display the native button; it cannot complete real Apple authorization. A Debug iOS build pointed at `http://localhost:<port>` shows the test-account picker below Sign in with Apple.
+From `server/`, run `YOOKI_TEST_USER_PASSWORD=admin bun run dev:test-users`. This applies migrations, idempotently seeds the four accounts below in the local SQLite database, and serves the test-login route on loopback only. Set `PORT` if 3000 is occupied. The helper selects `AUTH_MODE=temporary` and requires no Apple settings or generated Apple keys. The updated iOS client reads `/api/v1/auth/config` and shows the test-account form.
 
 | Account | Tier | Local test password |
 | --- | --- | --- |
@@ -31,13 +31,17 @@ From `server/`, run `YOOKI_TEST_USER_PASSWORD=admin bun run dev:test-users`. Thi
 | `free-tier1@example.com` | Free | `admin` |
 | `free-tier2@example.com` | Free | `admin` |
 
-The password is supplied through `YOOKI_TEST_USER_PASSWORD`, not stored in SQLite or committed to source. Production mode never enables this endpoint, and the normal production server does not seed these accounts. Test login issues the same rotating Youki session as Apple sign-in. The server returns the tier from SQLite entitlements; the account screen shows an upgrade information button only for Free accounts. Payment checkout remains unimplemented, and the forecast calendar still has only one live day.
+The password is supplied through `YOOKI_TEST_USER_PASSWORD`, not stored in SQLite or committed to source. Production enables this endpoint only with explicit `AUTH_MODE=temporary` and a password of 24 to 128 characters. In `AUTH_MODE=apple`, production never enables test login. Test login issues the same rotating Youki session as Apple sign-in. The server returns the tier from SQLite entitlements; the account screen shows an upgrade information button only for Free accounts. Payment checkout remains unimplemented, and the forecast calendar still has only one live day.
 
 Use `bun run backup -- /absolute/path/to/backup.sqlite` for a consistent SQLite `VACUUM INTO` snapshot. The script verifies `PRAGMA integrity_check` and refuses to overwrite an existing backup. For a hosted server, schedule these snapshots, copy them off the Droplet, retain multiple versions, and test restoration. No remote backup schedule is configured yet.
 
 ## Deployment boundary
 
-Do not deploy this SQLite build to DigitalOcean App Platform: its container filesystem is discarded on replacement, and it has no persistent volume. The later Droplet move must mount a stable host data directory for `SQLITE_PATH`, configure HTTPS, CI/CD, secrets, and off-machine backups, then update the iOS release URL in [AppConfig](../frontend/YoukiApp/AppConfig.swift). The previously started local `postgres:17` development container is no longer used by the server.
+Use the [Droplet deployment guide](../server/deploy/README.md) for persistent SQLite, HTTPS, and CI/CD. App Platform's ephemeral container filesystem is unsuitable for this SQLite build. The Droplet workflow migrates the database and seeds the four test accounts only when `AUTH_MODE=temporary`; it then starts the server and checks database readiness.
+
+Temporary mode does not load any `APPLE_*` variables and does not register Apple challenge/sign-in routes. It retains backend-owned SQLite accounts, session rotation, entitlements, quotas, and account deletion. Test login has a server-wide limit of 30 attempts per minute. Existing Apple accounts cannot sign in in this mode, and deleting an existing Apple account requires switching back to Apple mode for revocation. This is a temporary shared-password testing setup, not registration for real users. Deleted test accounts are recreated by a later deployment's seed step.
+
+The iOS sign-in view discovers temporary mode via `GET /api/v1/auth/config`, including for an HTTPS Droplet in Release builds. Update the iOS release URL in [AppConfig](../frontend/YoukiApp/AppConfig.swift) when the Droplet hostname is available. Backup scheduling and live Droplet/Apple verification remain outstanding.
 
 ## Verification and remaining work
 
