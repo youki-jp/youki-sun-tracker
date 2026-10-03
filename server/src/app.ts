@@ -43,15 +43,28 @@ export function createApp(auth: AuthService) {
   app.get("/", (c) => c.text("Youki"));
   app.route("/api/v1/health", createHealthRouter({ startedAtIso, ready: () => auth.ready() }));
 
-  app.post("/api/v1/auth/challenge", async (c) => c.json(await auth.challenge(), 200));
-  app.post("/api/v1/auth/apple", async (c) => {
-    const body = await readObject(c.req.raw);
-    return c.json(await auth.signIn(requiredString(body.identityToken, "identityToken", 8192),
-      requiredString(body.authorizationCode, "authorizationCode", 4096),
-      requiredString(body.nonce, "nonce", 128)), 200);
+  app.get("/api/v1/auth/config", (c) => {
+    c.header("Cache-Control", "no-store");
+    return c.json({ appleSignInEnabled: auth.appleSignInEnabled, testLoginEnabled: auth.localTestLoginEnabled });
   });
+  if (auth.appleSignInEnabled) {
+    app.post("/api/v1/auth/challenge", async (c) => c.json(await auth.challenge(), 200));
+    app.post("/api/v1/auth/apple", async (c) => {
+      const body = await readObject(c.req.raw);
+      return c.json(await auth.signIn(requiredString(body.identityToken, "identityToken", 8192),
+        requiredString(body.authorizationCode, "authorizationCode", 4096),
+        requiredString(body.nonce, "nonce", 128)), 200);
+    });
+  }
   if (auth.localTestLoginEnabled) {
+    let loginWindow = Date.now(), loginCount = 0;
     app.post("/api/v1/auth/test-login", async (c) => {
+      const now = Date.now();
+      if (now - loginWindow >= 60_000) { loginWindow = now; loginCount = 0; }
+      if (++loginCount > 30) {
+        c.header("Retry-After", String(Math.ceil((loginWindow + 60_000 - now) / 1000)));
+        throw new AppError("Too many login attempts.", "rate_limited", 429);
+      }
       const body = await readObject(c.req.raw);
       return c.json(await auth.signInLocalTestUser(
         requiredString(body.email, "email", 254), requiredString(body.password, "password", 128)), 200);

@@ -1,6 +1,6 @@
 # Droplet deployment
 
-The repository deploys the server to one Ubuntu Droplet whenever a commit is pushed to `develop`. GitHub Actions connects over SSH, checks out that exact commit, builds the API image, applies SQLite migrations, starts the API and Caddy, and checks the health endpoint. Docker restart policies keep both containers running after a reboot.
+The repository deploys the server to one Ubuntu Droplet whenever a commit is pushed to `develop`. GitHub Actions connects over SSH, checks out that exact commit, builds the API image, applies SQLite migrations, seeds test accounts when temporary mode is enabled, starts the API and Caddy, and checks the health endpoint. Docker restart policies keep both containers running after a reboot.
 
 ## One-time Droplet setup
 
@@ -19,17 +19,24 @@ The repository deploys the server to one Ubuntu Droplet whenever a commit is pus
    API_DOMAIN=api.example.com
    ```
 
-6. As the `deploy` user, create `/opt/youki/server/.env.production` with the production Apple credentials. For example, `sudo -u deploy nano /opt/youki/server/.env.production`:
+6. Create `/opt/youki/server/.env.production` for temporary test login. No Apple Developer account, Apple keys, or encryption key is required in this mode:
 
-   ```dotenv
-   APPLE_CLIENT_ID=jp.youki.YoukiApp
-   APPLE_TEAM_ID=YOUR_TEAM_ID
-   APPLE_KEY_ID=YOUR_KEY_ID
-   APPLE_PRIVATE_KEY='-----BEGIN PRIVATE KEY-----\nYOUR_KEY_CONTENT\n-----END PRIVATE KEY-----'
-   APPLE_TOKEN_ENCRYPTION_KEY=YOUR_BASE64_32_BYTE_KEY
+   ```sh
+   nano /opt/youki/server/.env.production
    ```
 
-   Generate the encryption key once with `openssl rand -base64 32`. Keep it stable and back it up separately from the SQLite data. Protect this env file (`chmod 600`) and do not commit it. The test-user server is disabled in production.
+   Enter:
+
+   ```dotenv
+   AUTH_MODE=temporary
+   YOOKI_TEST_USER_PASSWORD=YOUR_GENERATED_PASSWORD
+   ```
+
+   Generate the password with `openssl rand -base64 32`, replace `YOUR_GENERATED_PASSWORD` with its output, and share it only with your testers. Production requires 24 to 128 characters. Protect both env files with `chmod 600 server/.env.production server/deploy/.env`. Do not commit them.
+
+   Temporary mode enables only the four seeded Free/Pro test accounts; it disables the Apple challenge and sign-in routes. Sessions, quotas, logout, refresh, and test-account deletion still use SQLite. This is a shared test login, not public account registration. The server reports the available login method at `GET /api/v1/auth/config`, which the updated iOS client uses to show the test-account password form.
+
+   To enable real Apple sign-in later, switch to `AUTH_MODE=apple` and supply the five `APPLE_*` values documented in the [account guide](../../docs/auth-implementation.md). Seeding then skips test accounts and their login route is disabled.
 
 7. As the deploy user, perform the initial migration and start:
 
@@ -37,6 +44,7 @@ The repository deploys the server to one Ubuntu Droplet whenever a commit is pus
    cd /opt/youki
    docker compose --env-file server/deploy/.env -f server/deploy/compose.yaml build api
    docker compose --env-file server/deploy/.env -f server/deploy/compose.yaml run --rm api bun scripts/migrate.ts
+   docker compose --env-file server/deploy/.env -f server/deploy/compose.yaml run --rm api bun scripts/seed-test-users.ts --if-temporary
    docker compose --env-file server/deploy/.env -f server/deploy/compose.yaml up -d
    ```
 
@@ -59,7 +67,14 @@ After the workflow is merged to `develop`, every push to `develop` deploys that 
 Verify the public endpoint with:
 
 ```sh
-curl https://api.example.com/api/v1/health
+curl --fail https://api.example.com/api/v1/health/ready
+curl --fail https://api.example.com/api/v1/auth/config
 ```
 
 The iOS Release build must also use this HTTPS hostname in `AppConfig.defaultServerURLString`; deploying the API does not change an already-installed app's URL.
+
+## Existing Droplet with placeholder Apple credentials
+
+After these code changes are merged to `develop`, replace the contents of `server/.env.production` with just `AUTH_MODE=temporary` and `YOOKI_TEST_USER_PASSWORD` as above. Remove all placeholder `APPLE_*` lines. Run the workflow on the latest `develop` commit from the Actions tab, or push a new commit to `develop`.
+
+Seeding is idempotent and preserves existing account IDs and sessions. A deleted test account is recreated on the next deployment that seeds accounts. The four accounts share the configured password and their account quotas are shared between testers using the same account. Test login is limited to 30 attempts per minute for the server. Keep port 3000 bound to loopback and access the API over Caddy HTTPS.

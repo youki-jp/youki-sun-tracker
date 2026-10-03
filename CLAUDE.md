@@ -9,7 +9,7 @@ Youki is a sunrise and sunset sky-color forecast prototype with two parts:
 - `frontend/` is an iOS 17+ SwiftUI app. The main screen requests the current device location and loads the current forecast from the prediction API, with local Tokyo sample data as a fallback.
 - `server/` is a Bun + Hono TypeScript backend. It calls Open-Meteo, normalizes solar, weather, and air-quality data, and returns heuristic sky-color predictions.
 
-The 2026-09-28 auth implementation adds native Sign in with Apple, Youki-owned SQLite sessions and Free/Pro entitlements, authenticated forecast routes, and quotas. Drizzle manages the SQLite schema and migrations. It is implemented and tested locally but not deployed or verified with live Apple credentials. Read [`docs/auth-implementation.md`](docs/auth-implementation.md) before changing or deploying account code.
+The 2026-09-28 auth implementation adds native Sign in with Apple, Youki-owned SQLite sessions and Free/Pro entitlements, authenticated forecast routes, and quotas. Drizzle manages the SQLite schema and migrations. It is implemented and tested locally but not deployed or verified with live Apple credentials. Read [`docs/auth-implementation.md`](docs/auth-implementation.md) before changing or deploying account code. The 2026-10-03 temporary deployment mode uses `AUTH_MODE=temporary` and `YOOKI_TEST_USER_PASSWORD` without Apple credentials, preserves backend sessions/quotas, and disables Apple login. See [`server/deploy/README.md`](server/deploy/README.md); live Droplet deployment remains unverified.
 
 The UI prototype and backend are intentionally at different integration stages. Do not assume that changing a backend response will automatically change the iOS screen.
 

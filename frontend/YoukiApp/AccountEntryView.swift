@@ -29,28 +29,32 @@ struct AccountEntryView: View {
 
     var body: some View {
         Group {
-            switch mode {
-            case .signUp:
-                signUpView
-            case .signIn:
-                signInView
-            case .testAccount:
-                #if DEBUG
-                if ["localhost", "127.0.0.1"].contains(AppConfig.serverURL.host ?? "") {
-                    localTestAccountView
+            if authSession.temporaryLoginEnabled {
+                localTestAccountView
+            } else {
+                switch mode {
+                case .signUp:
+                    signUpView
+                case .signIn:
+                    signInView
+                case .testAccount:
+                    #if DEBUG
+                    if ["localhost", "127.0.0.1"].contains(AppConfig.serverURL.host ?? "") {
+                        localTestAccountView
+                    }
+                    else { signInView }
+                    #else
+                    signInView
+                    #endif
                 }
-                else { signInView }
-                #else
-                signInView
-                #endif
             }
         }
         .foregroundStyle(inkColor)
         .background(panelColor.ignoresSafeArea())
         .preferredColorScheme(appTheme.colorScheme)
-        .task { await authSession.prepareAppleSignIn() }
+        .task { await authSession.prepareSignIn() }
         .onChange(of: mode) { _, newMode in
-            if newMode != .testAccount { Task { await authSession.prepareAppleSignIn() } }
+            if newMode != .testAccount { Task { await authSession.prepareSignIn() } }
         }
     }
 
@@ -174,21 +178,20 @@ struct AccountEntryView: View {
         }
     }
 
-    #if DEBUG
     private var localTestAccountView: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 12) {
-                accountHeader(backToSignIn: true)
+                accountHeader(backToSignIn: !authSession.temporaryLoginEnabled)
                     .padding(.bottom, 24)
                 Rectangle()
                     .fill(inkColor.opacity(0.14))
                     .frame(height: 1)
                     .padding(.bottom, 12)
-                Text("LOCAL TEST ACCOUNTS")
+                Text(authSession.temporaryLoginEnabled ? "TEST ACCOUNTS" : "LOCAL TEST ACCOUNTS")
                     .font(.system(size: 11, weight: .bold, design: .rounded))
                     .tracking(1.5)
                     .foregroundStyle(accentColor)
-                Text("Preview Free and Pro access with a seeded local account.")
+                Text("Sign in with a Free or Pro test account using the password provided to you.")
                     .font(.system(size: 13, design: .rounded))
                     .foregroundStyle(inkColor.opacity(0.65))
                 Menu {
@@ -238,7 +241,6 @@ struct AccountEntryView: View {
             .padding(.bottom, 36)
         }
     }
-    #endif
 
     private var accountHeader: some View {
         accountHeader(backToSignIn: false)
@@ -272,15 +274,15 @@ struct AccountEntryView: View {
                     .font(.system(size: 12, design: .rounded))
                     .foregroundStyle(accentColor)
                     .multilineTextAlignment(.center)
-                if authSession.appleNonceHash == nil {
-                    Button("Try again") { Task { await authSession.prepareAppleSignIn() } }
+                if authSession.appleNonceHash == nil && !authSession.temporaryLoginEnabled {
+                    Button("Try again") { Task { await authSession.prepareSignIn() } }
                         .font(.system(size: 13, weight: .semibold, design: .rounded))
                         .accessibilityIdentifier("retryAppleSignInButton")
                 }
             }
             .frame(maxWidth: .infinity)
-        } else if authSession.appleNonceHash == nil {
-            ProgressView("Preparing Apple sign-in")
+        } else if authSession.appleNonceHash == nil && !authSession.temporaryLoginEnabled {
+            ProgressView("Preparing sign-in")
                 .frame(maxWidth: .infinity, minHeight: 44)
         }
     }
@@ -299,7 +301,7 @@ struct AccountEntryView: View {
             .id(creatingAccount)
             .accessibilityIdentifier("appleSignInButton")
         } else {
-            ProgressView("Preparing Apple sign-in")
+            ProgressView("Preparing sign-in")
                 .frame(maxWidth: .infinity, minHeight: 54)
         }
     }

@@ -57,10 +57,11 @@ jobs:
           "${compose[@]}" build api
           "${compose[@]}" pull caddy
           "${compose[@]}" run --rm api bun scripts/migrate.ts
+          "${compose[@]}" run --rm api bun scripts/seed-test-users.ts --if-temporary
           "${compose[@]}" up -d --remove-orphans
 
           for attempt in {1..12}; do
-            if curl --fail --silent --show-error http://127.0.0.1:3000/api/v1/health; then
+            if curl --max-time 5 --fail --silent --show-error http://127.0.0.1:3000/api/v1/health/ready; then
               exit 0
             fi
             sleep 5
