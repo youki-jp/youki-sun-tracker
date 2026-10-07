@@ -187,6 +187,12 @@ struct AccountEntryView: View {
                     .fill(inkColor.opacity(0.14))
                     .frame(height: 1)
                     .padding(.bottom, 12)
+                Text("Your sky, every day.")
+                    .font(.system(size: 30, weight: .bold, design: .rounded))
+                Text("Sign in to explore sunrise, sunset, and the colors ahead.")
+                    .font(.system(size: 15, design: .rounded))
+                    .foregroundStyle(inkColor.opacity(0.68))
+                    .padding(.bottom, 18)
                 Text(authSession.temporaryLoginEnabled ? "TEST ACCOUNTS" : "LOCAL TEST ACCOUNTS")
                     .font(.system(size: 11, weight: .bold, design: .rounded))
                     .tracking(1.5)
@@ -258,8 +264,8 @@ struct AccountEntryView: View {
             if backToSignIn {
                 Button("Back") { mode = .signIn }
                     .font(.system(size: 14, weight: .medium, design: .rounded))
-            } else {
-                Button("Done") { onClose() }
+            } else if authSession.isAuthenticated {
+                Button("Close") { onClose() }
                     .font(.system(size: 14, weight: .medium, design: .rounded))
                     .accessibilityIdentifier("accountDoneButton")
             }

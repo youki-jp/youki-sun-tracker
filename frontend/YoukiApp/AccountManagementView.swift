@@ -35,7 +35,7 @@ struct AccountManagementView: View {
                     Text("A one-time upgrade is planned. Purchases are not available yet.")
                         .font(.system(size: 14, design: .rounded))
                         .foregroundStyle(inkColor.opacity(0.65))
-                    Button("Done") { showUpgradeInfo = false }
+                    Button("Close") { showUpgradeInfo = false }
                         .buttonStyle(.borderedProminent)
                         .tint(accentColor)
                     Spacer()
@@ -59,7 +59,7 @@ struct AccountManagementView: View {
                             .font(.system(size: 20, weight: .bold, design: .rounded))
                     }
                     Spacer()
-                    Button("Done") { onClose() }
+                    Button("Close") { onClose() }
                         .font(.system(size: 14, weight: .medium, design: .rounded))
                         .accessibilityIdentifier("accountDoneButton")
                 }

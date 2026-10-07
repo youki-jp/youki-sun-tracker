@@ -1,7 +1,7 @@
 # Temporary Droplet authentication without Apple credentials
 
-Status: Implemented locally; deployment unverified
-Updated: 2026-10-03
+Status: Deployed and observed working on 2026-10-03
+Updated: 2026-10-07
 
 ## Quick read
 
@@ -17,9 +17,11 @@ Droplet deployment and hosted testing can proceed before Apple Developer credent
 
 Implemented and checked locally on `feat/temporary-droplet-auth`. Production-mode startup with no `APPLE_*` settings and authenticated session flows passed. The Docker build context is corrected. PR #19 was merged into `develop` as `ec8b48e`. Its first workflow built the Docker image and migrated SQLite, then exited before seeding/startup. The follow-up disables Docker Compose interactive input so the remote script reaches startup and readiness.
 
+The follow-up PR #20 was merged as `5a61ab9`. [Run 37120575640](https://github.com/youki-jp/youki-sun-tracker/actions/runs/37120575640) completed migrations, seeding, API/Caddy startup, and database readiness. HTTPS health/auth-config and user-confirmed iOS login worked at `https://206.189.178.229.sslip.io`. This evidence is from October 3; see the [current handover](../handover.md) for connection details and newer local work.
+
 ### Next step
 
-Replace the Droplet's placeholder env file using the [deployment guide](../../server/deploy/README.md), then merge these changes to `develop` and inspect the deployment run.
+Use the [handover](../handover.md) to connect to `deploy@206.189.178.229` and distinguish the deployed temporary-auth version from the local weekly UX changes.
 
 ## Changed surface
 
@@ -62,26 +64,27 @@ None; implementation was completed by the primary agent.
 | Weak production password startup | Passed | `admin` rejected before server startup |
 | iOS Simulator Debug and Release builds | Passed | `xcodebuild` with generic iOS Simulator destination; temporary DerivedData; successful builds |
 | `git diff --check` | Passed | No whitespace errors |
+| Corrected Droplet deployment | Passed on October 3 | Run `37120575640` reached seed, container startup, and readiness |
+| Public HTTPS and hosted login | Observed on October 3 | Health/config requests succeeded; user confirmed iOS login |
 
 ### Risks and limitations
 
 - All four test accounts share the password. Their sessions and quotas belong to the selected account, so testers selecting the same account share its data and quotas.
 - Seeding preserves account IDs but recreates deleted test accounts on a later deployment. This is test-account behavior, not public signup.
 - Temporary mode disables new Apple sign-ins. Existing Apple-account deletion requiring token revocation needs Apple mode and valid credentials.
-- The iOS Release URL still points to App Platform; the Droplet hostname must be configured before hosted app testing.
+- The iOS Release default still points to App Platform; hosted development used `BACKEND_URL=https://206.189.178.229.sslip.io`. Set this explicitly for subsequent hosted runs.
 - Pre-existing changes in `SkyGradient.swift` and the Xcode project file were present before this work and were not edited by this task.
 
 ### Follow-ups
 
-- Set the Droplet env file, merge to `develop`, and verify the workflow and public HTTPS readiness endpoint.
-- Configure the iOS API hostname and off-Droplet backups.
+- Configure the iOS Release default before distribution and schedule off-Droplet backups.
+- Deploy the newer local weekly UX when approved; see the [handover](../handover.md).
 - Switch to Apple mode when valid Apple credentials are available.
 
 ### Not implemented or unverified
 
-- Docker image build and SQLite migration were verified in GitHub run `37120436509`. That run did not verify startup: Compose consumed the remaining SSH script input. The follow-up requires a new deployment run.
-- Live Droplet deployment, DNS, TLS, backups, and hosted iOS login.
-- Simulator screenshots and physical-device verification.
+- Scheduled off-Droplet backups, restore drills, physical-device verification, and live Apple sign-in.
+- Current uptime has not been rechecked on October 7; deployment, TLS, and login evidence is from October 3.
 - Public email/password signup, password recovery, and payment integration.
 
 ## Deployment follow-up

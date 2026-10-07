@@ -1,5 +1,9 @@
 # Droplet deployment
 
+## Existing Youki deployment
+
+The configured Droplet is `206.189.178.229`, SSH user `deploy`, checkout `/opt/youki`, API `https://206.189.178.229.sslip.io`, and `API_DOMAIN=206.189.178.229.sslip.io`. These are the October 3 deployment values, not the example placeholders below. Read the [current handover](../../docs/handover.md) before connecting; it distinguishes deployed code from local weekly UX changes and records the legacy iOS Release URL.
+
 The repository deploys the server to one Ubuntu Droplet whenever a commit is pushed to `develop`. GitHub Actions connects over SSH, checks out that exact commit, builds the API image, applies SQLite migrations, seeds test accounts when temporary mode is enabled, starts the API and Caddy, and checks the health endpoint. Docker restart policies keep both containers running after a reboot.
 
 ## One-time Droplet setup

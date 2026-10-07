@@ -6,6 +6,15 @@ import SwiftUI
 @MainActor
 final class ServerViewModel: ObservableObject {
     @Published private(set) var forecastDays: [PrototypeDay] = []
+    @Published private(set) var calendarDays: [ForecastWeekDay] = []
+    @Published private(set) var isCalendarLoading = false
+    @Published private(set) var calendarError: String?
+    @Published private(set) var selectedDateIso: String?
+    private var calendarLastAttempt: Date?
+    private var calendarRetrievedAt: Date?
+    private var calendarRequestID = UUID()
+    private var calendarTimezone: String?
+    private var calendarToday: String?
     @Published private(set) var isLoading = true
     @Published private(set) var isLive = false
     @Published private(set) var errorMessage: String?
@@ -18,6 +27,7 @@ final class ServerViewModel: ObservableObject {
 
     private let locationManager = LocationManager()
     private let geocoder = CLGeocoder()
+    private let weekLoader: (ForecastCoordinates) async throws -> ForecastWeekResponse
     private let predictionLoader: (ForecastCoordinates) async throws -> SkyColorAPIResponse
     private let timelineLoader: (ForecastCoordinates) async throws -> SkyDayTimelineResponse
     private let locationLoader: () async throws -> CLLocation
@@ -56,6 +66,9 @@ final class ServerViewModel: ObservableObject {
         requiresAuthentication: Bool = true,
         now: @escaping () -> Date = Date.init,
         locationLoader: (() async throws -> CLLocation)? = nil,
+        weekLoader: @escaping (ForecastCoordinates) async throws -> ForecastWeekResponse = {
+            try await SkyDayTimelineAPIClient(baseURL: AppConfig.serverURL).fetchWeek($0)
+        },
         predictionLoader: @escaping (ForecastCoordinates) async throws -> SkyColorAPIResponse = { coordinates in
             #if DEBUG
             if ProcessInfo.processInfo.arguments.contains(where: { $0.hasPrefix("-uiSkyFixture") }) {
@@ -81,6 +94,7 @@ final class ServerViewModel: ObservableObject {
         self.now = now
         let locationManager = self.locationManager
         self.locationLoader = locationLoader ?? { try await locationManager.currentLocation() }
+        self.weekLoader = weekLoader
         self.predictionLoader = predictionLoader
         self.timelineLoader = timelineLoader
     }
@@ -98,6 +112,9 @@ final class ServerViewModel: ObservableObject {
                 return SkySceneSampler(timeline: timeline).scene(at: now()) != nil
             }
             return scenes[moment] != nil
+        }
+        if moment == .sunrise || moment == .sunset {
+            return predictions?.predictions.contains { $0.kind == (moment == .sunrise ? .sunrise : .sunset) } ?? false
         }
         return false
     }
@@ -127,6 +144,7 @@ final class ServerViewModel: ObservableObject {
     }
 
     func showSample() {
+        resetCalendar()
         requestID = UUID()
         locationLookupID = UUID()
         isLocating = false
@@ -210,6 +228,7 @@ final class ServerViewModel: ObservableObject {
     }
 
     private func beginRequest() -> UUID {
+        resetCalendar()
         requestID = UUID()
         invalidateGeocoding()
         clockTask?.cancel()
@@ -308,6 +327,8 @@ final class ServerViewModel: ObservableObject {
         errorMessage = failures.isEmpty ? nil : failures.joined(separator: "\n")
         rebuildPresentation()
         startClockRefresh()
+        // Also supplies tomorrow's upcoming event after today's last milestone.
+        await loadCalendar()
     }
 
     private func rebuildPresentation() {
@@ -370,7 +391,7 @@ final class ServerViewModel: ObservableObject {
 
     private func startClockRefresh() {
         clockTask?.cancel()
-        guard timeline != nil else { return }
+        guard timeline != nil || selectedDateIso != nil else { return }
         clockTask = Task { [weak self] in
             while !Task.isCancelled {
                 do { try await Task.sleep(for: .seconds(60)) }
@@ -400,9 +421,17 @@ final class ServerViewModel: ObservableObject {
 
     func refreshIfNeeded(force: Bool = false) async {
         guard canLoadLive else { return }
-        guard let coordinates, let timeline, !isRefreshing, isForeground else { return }
+        guard let coordinates, !isRefreshing, isForeground else { return }
+        guard let timeline else {
+            if selectedDateIso != nil { await loadCalendar(force: force) }
+            return
+        }
         let date = now()
         guard let localDate = Self.localDate(date, timezone: timeline.location.timezoneId) else { return }
+        if let selectedDateIso, selectedDateIso >= localDate {
+            await loadCalendar(force: force)
+            return
+        }
         if localDate != timeline.targetDateIso {
             let id = beginRequest()
             await fetch(coordinates, id: id)
@@ -454,6 +483,218 @@ final class ServerViewModel: ObservableObject {
         }
         errorMessage = failures.isEmpty ? nil : failures.joined(separator: "\n")
         rebuildPresentation()
+        await loadCalendar()
+    }
+
+    func retryForecast() async {
+        if selectedDateIso != nil { await loadCalendar(force: true) }
+        else { await loadForecast() }
+    }
+
+    func accountTierDidChange() async {
+        guard canLoadLive, let coordinates else { return }
+        let id = beginRequest()
+        await fetch(coordinates, id: id)
+    }
+
+    private func resetCalendar() {
+        calendarRequestID = UUID()
+        calendarDays = []
+        calendarError = nil
+        calendarRetrievedAt = nil
+        calendarLastAttempt = nil
+        calendarTimezone = nil
+        calendarToday = nil
+        selectedDateIso = nil
+        isCalendarLoading = false
+    }
+
+    func loadCalendar(force: Bool = false) async {
+        guard canLoadLive, let coordinates, !isCalendarLoading else { return }
+        #if DEBUG
+        if ProcessInfo.processInfo.arguments.contains(where: { $0.hasPrefix("-uiSkyFixture") }) { return }
+        #endif
+        guard requiresAuthentication else { return }
+        let localDay = calendarTimezone.flatMap { Self.localDate(now(), timezone: $0) }
+        if !force, localDay == calendarToday,
+           let calendarRetrievedAt, now().timeIntervalSince(calendarRetrievedAt) < 1_800 { return }
+        if !force, let calendarLastAttempt, now().timeIntervalSince(calendarLastAttempt) < 300 { return }
+        calendarLastAttempt = now()
+        let id = UUID()
+        calendarRequestID = id
+        isCalendarLoading = true
+        calendarError = nil
+        do {
+            let result = try await weekLoader(coordinates)
+            guard calendarRequestID == id else { return }
+            guard let returned = Self.responseCoordinates(result.location),
+                  Self.distance(from: coordinates, to: returned) <= Self.sameForecastAreaRadiusMeters,
+                  result.today == Self.localDate(now(), timezone: result.location.timezoneId),
+                  result.days.count == 7,
+                  result.days.enumerated().allSatisfy({ offset, row in
+                      Self.offsetDay(result.today, by: offset) == row.id
+                      && row.forecastType == (offset < 2 ? "forecast" : "outlook")
+                  }),
+                  result.days.allSatisfy({ row in
+                      (row.timeline.map { value in
+                          value.targetDateIso == row.id && value.location.timezoneId == result.location.timezoneId
+                          && Self.responseCoordinates(value.location).map { Self.distance(from: coordinates, to: $0) <= Self.sameForecastAreaRadiusMeters } == true
+                      } ?? true)
+                      && (row.predictions.map { response in
+                          response.location.timezoneId == result.location.timezoneId
+                          && Self.responseCoordinates(response.location).map { Self.distance(from: coordinates, to: $0) <= Self.sameForecastAreaRadiusMeters } == true
+                          && response.predictions.allSatisfy { $0.window.eventTimeIso.hasPrefix(row.id + "T") }
+                      } ?? true)
+                  }) else { throw SkyDayTimelineAPIError.invalidResponse }
+            calendarDays = result.days
+            calendarTimezone = result.location.timezoneId
+            calendarToday = result.today
+            calendarRetrievedAt = now()
+            let dateToRestore = selectedDateIso ?? ((!hasLiveSky || !hasLiveForecast) ? result.today : nil)
+            if let dateToRestore,
+               let updated = result.days.first(where: { $0.id == dateToRestore && $0.isAvailable }) {
+                selectDay(updated, keepMoment: true)
+            }
+        } catch {
+            guard calendarRequestID == id else { return }
+            calendarError = error.localizedDescription
+        }
+        if calendarRequestID == id { isCalendarLoading = false }
+    }
+
+    func selectDay(_ day: ForecastWeekDay, keepMoment: Bool = false) {
+        guard day.isAvailable, let coordinates else { return }
+        // Invalidate outstanding current-day refreshes before publishing the selected day.
+        requestID = UUID()
+        isRefreshing = false
+        selectedDateIso = day.id
+        timeline = day.timeline
+        predictions = day.predictions.flatMap { response in
+            guard let returned = Self.responseCoordinates(response.location),
+                  Self.distance(from: coordinates, to: returned) <= Self.sameForecastAreaRadiusMeters,
+                  response.predictions.allSatisfy({ $0.window.eventTimeIso.hasPrefix(day.id + "T") }) else { return nil }
+            return response.predictions.isEmpty ? nil : response
+        }
+        hasLiveSky = timeline != nil
+        hasLiveForecast = predictions != nil
+        currentDate = now()
+        scenes = timeline.map { Self.makeScenes(for: $0, at: now()) } ?? [:]
+        retrievedAt = calendarRetrievedAt
+        scoreRetrievedAt = calendarRetrievedAt
+        if !keepMoment || !isAvailable(selectedMoment) {
+            if day.id == Self.localDate(now(), timezone: calendarTimezone ?? ""), scenes[.now] != nil {
+                selectedMoment = .now
+            } else {
+                selectedMoment = SkyMoment.allCases.first { $0 != .now && scenes[$0] != nil }
+                    ?? (day.sunrisePrediction != nil ? .sunrise : .sunset)
+            }
+        }
+        errorMessage = day.errors.isEmpty ? nil : day.errors.joined(separator: "\n")
+        isLoading = false
+        forecastDays = []
+        rebuildPresentation()
+        startClockRefresh()
+    }
+
+    var displayedMoments: [SkyMoment] {
+        let day = selectedDateIso ?? timeline?.targetDateIso
+        let today = Self.localDate(now(), timezone: timeline?.location.timezoneId ?? calendarTimezone ?? "UTC")
+        return day != nil && day != today ? SkyMoment.allCases.filter { $0 != .now } : SkyMoment.allCases
+    }
+
+    var calendarUpdatedLabel: String? {
+        guard let calendarRetrievedAt else { return nil }
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.timeZone = TimeZone(identifier: calendarTimezone ?? "UTC")
+        formatter.dateFormat = "MMM d, HH:mm"
+        return "Updated " + formatter.string(from: calendarRetrievedAt)
+    }
+
+    var displayedDateLabel: String {
+        guard let day = selectedDateIso ?? timeline?.targetDateIso ?? forecastDays.first?.id,
+              let timezone = timeline?.location.timezoneId ?? calendarTimezone ?? predictions?.location.timezoneId
+        else { return "Forecast" }
+        return dateLabel(day, timezone: timezone)
+    }
+
+    func dateLabel(_ day: String, timezone: String? = nil) -> String {
+        let zone = timezone ?? calendarTimezone ?? timeline?.location.timezoneId ?? "UTC"
+        let today = Self.localDate(now(), timezone: zone)
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.timeZone = TimeZone(secondsFromGMT: 0)
+        formatter.dateFormat = "yyyy-MM-dd"
+        guard let date = formatter.date(from: day) else { return day }
+        let tomorrow = today.flatMap { formatter.date(from: $0) }.map { $0.addingTimeInterval(86_400) }
+            .map { formatter.string(from: $0) }
+        formatter.dateFormat = "EEE, MMM d"
+        let label = formatter.string(from: date)
+        if day == today { return "Today · " + label }
+        if day == tomorrow { return "Tomorrow · " + label }
+        return label
+    }
+
+    var forecastProvenance: String {
+        let day = selectedDateIso ?? timeline?.targetDateIso
+        let isOutlook = calendarDays.first { $0.id == day }?.forecastType == "outlook"
+        let generated = predictions?.generatedAtIso ?? timeline?.generatedAtIso
+        let formatter = ISO8601DateFormatter()
+        formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        let updated = generated.flatMap { formatter.date(from: $0) }
+        let clock = DateFormatter()
+        clock.timeZone = TimeZone(identifier: timeline?.location.timezoneId ?? calendarTimezone ?? "UTC")
+        clock.dateFormat = "HH:mm"
+        let update = updated.map { " · Updated " + clock.string(from: $0) } ?? ""
+        let earlier = updated.map { now().timeIntervalSince($0) > 1_800 } ?? false
+        let prefix = earlier ? "Earlier forecast · " : ""
+        return prefix + (isOutlook ? "Outlook · Conditions may change" : "Forecast · " + (forecastDays.first?.confidenceLabel ?? "Input coverage unavailable")) + update
+    }
+
+    func hasPassed(_ moment: SkyMoment) -> Bool {
+        guard moment != .now, let timeline,
+              let iso = moment.localIso(in: timeline.milestones),
+              let local = Self.localDateTime(now(), timezone: timeline.location.timezoneId) else { return false }
+        return iso < local
+    }
+
+    var nextEventLabel: String {
+        let today = timeline.flatMap { Self.localDate(now(), timezone: $0.location.timezoneId) }
+            ?? calendarToday
+        guard let today else { return "Upcoming events unavailable" }
+        var candidates = calendarDays.compactMap(\.timeline)
+        if let timeline, !candidates.contains(where: { $0.targetDateIso == timeline.targetDateIso }) {
+            candidates.append(timeline)
+        }
+        for day in candidates.sorted(by: { $0.targetDateIso < $1.targetDateIso }) where day.targetDateIso >= today {
+            guard let local = Self.localDateTime(now(), timezone: day.location.timezoneId) else { continue }
+            for moment in SkyMoment.allCases where moment != .now {
+                if let iso = moment.localIso(in: day.milestones), iso > local {
+                    let prefix = day.targetDateIso == today ? "Today" : dateLabel(day.targetDateIso).components(separatedBy: " · ").first ?? day.targetDateIso
+                    return "Next: \(prefix) · \(moment.label.lowercased()) · \(ForecastMapper.milestoneTime(iso))"
+                }
+            }
+        }
+        if isCalendarLoading { return "Loading upcoming events…" }
+        if calendarError != nil { return "Upcoming events unavailable · Refresh to retry" }
+        return "No upcoming event available"
+    }
+
+    private static func offsetDay(_ day: String, by offset: Int) -> String? {
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.timeZone = TimeZone(secondsFromGMT: 0)
+        formatter.dateFormat = "yyyy-MM-dd"
+        return formatter.date(from: day).map { formatter.string(from: $0.addingTimeInterval(Double(offset) * 86_400)) }
+    }
+
+    private static func localDateTime(_ date: Date, timezone: String) -> String? {
+        guard let zone = TimeZone(identifier: timezone) else { return nil }
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.timeZone = zone
+        formatter.dateFormat = "yyyy-MM-dd'T'HH:mm:ss"
+        return formatter.string(from: date)
     }
 
     private static func localDate(_ date: Date, timezone: String) -> String? {

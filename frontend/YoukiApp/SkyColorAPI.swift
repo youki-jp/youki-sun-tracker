@@ -103,7 +103,7 @@ enum AuthenticatedJSONTransport {
     ) async throws -> Response {
         var request = URLRequest(url: endpoint)
         request.httpMethod = "POST"
-        request.timeoutInterval = 45
+        request.timeoutInterval = endpoint.lastPathComponent == "week" ? 90 : 45
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.httpBody = try JSONEncoder().encode(body)
 

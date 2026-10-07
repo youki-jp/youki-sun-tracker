@@ -43,7 +43,7 @@ extension ContentView {
             Button {
                 activeSheet = .alarm
             } label: {
-                Text(alarmModel.scheduled != nil ? "Alarm on" : "Set alarm")
+                Text(alarmModel.scheduled != nil ? "Alarm on" : "Set next alarm")
                     .font(.system(size: 12, weight: .bold, design: .rounded))
                     .foregroundStyle(alarmModel.scheduled != nil ? accentColor : .white)
                     .lineLimit(1)
@@ -61,6 +61,7 @@ extension ContentView {
             }
             .buttonStyle(.plain)
             .accessibilityIdentifier("wakeAlarmButton")
+            .accessibilityLabel(alarmModel.scheduled != nil ? "Manage scheduled alarm" : "Set alarm for the next upcoming golden hour")
         }
     }
 
@@ -89,7 +90,7 @@ extension ContentView {
 
     func eventTimeline(rowHeight: CGFloat, compact: Bool) -> some View {
         VStack(spacing: 0) {
-            ForEach(SkyMoment.allCases) { moment in
+            ForEach(serverViewModel.displayedMoments) { moment in
                 Button {
                     withAnimation(.easeInOut(duration: 0.25)) {
                         serverViewModel.select(moment)
@@ -133,7 +134,7 @@ extension ContentView {
                 .accessibilityIdentifier("moment.\(moment.id)")
                 .accessibilityValue(moment == selectedMoment ? "Selected" : "Not selected")
                 .disabled(!serverViewModel.isAvailable(moment))
-                .opacity(serverViewModel.isAvailable(moment) ? 1 : 0.4)
+                .opacity(serverViewModel.isAvailable(moment) ? (serverViewModel.hasPassed(moment) && moment != selectedMoment ? 0.45 : 1) : 0.4)
             }
         }
     }

@@ -25,7 +25,7 @@ enum ForecastMapper {
         let liveConditions = primary.conditions
 
         return PrototypeDay(
-            id: "today",
+            id: timeline?.targetDateIso ?? String(primary.window.eventTimeIso.prefix(10)),
             weekday: weekday(for: primaryDate, timezone: timezone),
             dateLabel: dateLabel(for: primaryDate, timezone: timezone),
             qualityScore: primary.score,
@@ -35,16 +35,16 @@ enum ForecastMapper {
             nowTime: displayClock(currentDate, timezone: timezone),
             location: locationName,
             mood: mood,
-            firstLight: milestoneTime(timeline?.milestones.civilDawnIso),
+            firstLight: milestoneTime(timeline?.milestones.civilDawnIso ?? sunrise?.window.twilight.civilStartsAtIso),
             golden: milestoneTime(timeline?.milestones.goldenHourStartIso),
-            sunrise: milestoneTime(timeline?.milestones.sunriseIso),
+            sunrise: milestoneTime(timeline?.milestones.sunriseIso ?? sunrise?.window.eventTimeIso),
             daylight: milestoneTime(timeline?.milestones.solarNoonIso),
             goldenPM: milestoneTime(timeline?.milestones.goldenHourPmStartIso),
-            sunset: milestoneTime(timeline?.milestones.sunsetIso),
+            sunset: milestoneTime(timeline?.milestones.sunsetIso ?? sunset?.window.eventTimeIso),
             blueEnd: milestoneTime(timeline?.milestones.civilDuskIso),
             cloud: percentage(liveConditions?.cloudCoverPct, suffix: "% cover"),
             uv: decimal(liveConditions?.uvIndex),
-            confidenceLabel: "\(primary.confidence)% confidence",
+            confidenceLabel: "\(primary.confidence)% input coverage",
             analysisText: moment == .now ? "\(primaryKindLabel.capitalized) event forecast: \(analysisText(for: primary))" : analysisText(for: primary),
             colorRamp: generatedRamp ?? colorRamp(for: primary, mood: mood),
             isLocked: false
@@ -60,7 +60,7 @@ enum ForecastMapper {
                             moment: SkyMoment, appearance: SkyAppearance, currentDate: Date = Date()) -> PrototypeDay {
         let milestones = timeline.milestones
         return PrototypeDay(
-            id: "today", weekday: "Today", dateLabel: timeline.targetDateIso,
+            id: timeline.targetDateIso, weekday: "Forecast", dateLabel: timeline.targetDateIso,
             qualityScore: 0, summaryLabel: moment == .now ? "Event score unavailable" : "Score unavailable",
             heroTime: moment == .now ? "Now" : milestoneTime(moment.localIso(in: milestones)),
             heroSubtitle: moment == .now ? "Current local time · \(displayClock(currentDate, timezone: timeline.location.timezoneId))" : "\(moment.label) · \(timeline.location.timezoneId)",
