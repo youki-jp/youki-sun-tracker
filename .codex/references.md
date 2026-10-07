@@ -2,6 +2,13 @@
 
 ## Canonical Repository Files
 
+### Deployment and session handover
+
+- [`docs/handover.md`](../docs/handover.md): current Droplet/API address, SSH connection, env locations, deployment evidence, and local changes.
+- [`server/deploy/README.md`](../server/deploy/README.md): operational setup and CI/CD.
+- Current API: `https://206.189.178.229.sslip.io`; SSH: `ssh deploy@206.189.178.229`; checkout: `/opt/youki`.
+- `youki-server-2idly.ondigitalocean.app` is legacy App Platform. AppConfig's Release default has not been cut over; use the explicit `BACKEND_URL` override.
+
 ### Product and architecture
 
 - [`docs/current-state.md`](../docs/current-state.md): what is implemented, what is still mocked, known gaps, and next milestones.

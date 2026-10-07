@@ -3,96 +3,119 @@ import SwiftUI
 extension ContentView {
     var calendarSheet: some View {
         NavigationStack {
-            VStack(alignment: .leading, spacing: 0) {
-                HStack {
-                    Text("Forecast calendar")
-                        .font(.system(size: 18, weight: .bold, design: .rounded))
-                    Spacer()
-                    Button("Done") { activeSheet = nil }
-                        .accessibilityIdentifier("calendarDoneButton")
-                }
-                .padding(.bottom, 12)
-
-                ForEach(serverViewModel.forecastDays) { day in
-                    Button {
-                        if day.isLocked && authSession.account?.tier != "pro" {
-                            activeSheet = .paywall
-                        } else {
-                            selectedDayID = day.id
-                            activeSheet = nil
-                        }
-                    } label: {
-                        HStack(spacing: 14) {
-                            VStack(alignment: .leading, spacing: 2) {
-                                HStack(spacing: 6) {
-                                    Text(day.weekday)
-                                        .font(.system(size: 14, weight: .semibold, design: .rounded))
-                                    if day.id == selectedDayID {
-                                        Circle()
-                                            .fill(accentColor)
-                                            .frame(width: 6, height: 6)
+            ScrollView {
+                VStack(alignment: .leading, spacing: 16) {
+                    HStack {
+                        Text("Forecast calendar")
+                            .font(.system(size: 22, weight: .bold, design: .rounded))
+                        Spacer()
+                        Button("Close") { activeSheet = nil }
+                            .accessibilityIdentifier("calendarDoneButton")
+                    }
+                    Text(authSession.account?.tier == "pro" ? "Your next seven days" : "Today and tomorrow · Seven days with Pro")
+                        .font(.system(size: 13, weight: .medium, design: .rounded))
+                        .foregroundStyle(inkColor.opacity(0.6))
+                    HStack {
+                        if serverViewModel.isCalendarLoading { ProgressView("Updating forecasts…") }
+                        Spacer()
+                        Button("Refresh") { Task { await serverViewModel.loadCalendar(force: true) } }
+                            .disabled(serverViewModel.isCalendarLoading)
+                            .accessibilityIdentifier("calendarRefreshButton")
+                    }
+                    .font(.system(size: 12, design: .rounded))
+                    if let error = serverViewModel.calendarError {
+                        Text(error + (serverViewModel.calendarDays.isEmpty ? "" : " Showing earlier forecasts."))
+                            .font(.system(size: 12, design: .rounded))
+                            .foregroundStyle(accentColor)
+                    }
+                    if let updated = serverViewModel.calendarUpdatedLabel {
+                        Text(updated)
+                            .font(.system(size: 11, design: .rounded))
+                            .foregroundStyle(inkColor.opacity(0.55))
+                    }
+                    ForEach(serverViewModel.calendarDays) { day in
+                        Button {
+                            if day.locked { activeSheet = .paywall }
+                            else {
+                                serverViewModel.selectDay(day)
+                                activeSheet = nil
+                            }
+                        } label: {
+                            VStack(alignment: .leading, spacing: 10) {
+                                HStack {
+                                    Text(serverViewModel.dateLabel(day.id))
+                                        .font(.system(size: 15, weight: .semibold, design: .rounded))
+                                    if day.id == selectedDay?.id {
+                                        Circle().fill(accentColor).frame(width: 6, height: 6)
+                                    }
+                                    Spacer()
+                                    if day.locked { Image(systemName: "lock.fill") }
+                                    else if day.isAvailable { Image(systemName: "chevron.right").font(.system(size: 11, weight: .semibold)) }
+                                }
+                                Text(day.forecastType == "outlook" ? "OUTLOOK · Conditions may change" : "FORECAST")
+                                    .font(.system(size: 9, weight: .bold, design: .rounded))
+                                    .tracking(0.8)
+                                    .foregroundStyle(inkColor.opacity(0.55))
+                                if day.locked {
+                                    Text("Unlock this day's sunrise and sunset with Pro")
+                                        .font(.system(size: 12, design: .rounded))
+                                } else {
+                                    HStack(alignment: .top, spacing: 16) {
+                                        calendarEvent(day, kind: .sunrise)
+                                        calendarEvent(day, kind: .sunset)
+                                    }
+                                    if !day.errors.isEmpty {
+                                        Text("Some forecast details are unavailable. Refresh to retry.")
+                                            .font(.system(size: 11, design: .rounded))
+                                            .foregroundStyle(accentColor)
                                     }
                                 }
-
-                                Text(day.dateLabel)
-                                    .font(.system(size: 11, weight: .medium, design: .rounded))
-                                    .foregroundStyle(inkColor.opacity(0.55))
                             }
-
-                            Spacer()
-
-                            Text(day.confidenceLabel)
-                                .font(.system(size: 11, weight: .medium, design: .rounded))
-                                .foregroundStyle(inkColor.opacity(0.5))
-
-                            if day.isLocked && authSession.account?.tier != "pro" {
-                                Image(systemName: "lock")
-                                    .font(.system(size: 14, weight: .semibold))
-                                    .foregroundStyle(inkColor.opacity(0.55))
-                            } else {
-                                Circle()
-                                    .fill(day.mood.displayColor)
-                                    .frame(width: 9, height: 9)
-                                Text(serverViewModel.isScoreAvailable ? String(day.qualityScore) : "—")
-                                    .font(.system(size: 14, weight: .bold, design: .rounded))
-                                    .monospacedDigit()
-                            }
+                            .foregroundStyle(inkColor)
+                            .padding(16)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .background(cardColor, in: RoundedRectangle(cornerRadius: 16))
                         }
-                        .padding(.vertical, 14)
+                        .buttonStyle(.plain)
+                        .disabled(!day.locked && !day.isAvailable)
+                        .accessibilityIdentifier("calendarDay.\(day.id)")
                     }
-                    .buttonStyle(.plain)
-                    .accessibilityIdentifier("calendarDay.\(day.id)")
-
-                    Divider()
-                }
-
-                Button {
-                    withAnimation(.easeInOut(duration: 0.2)) {
+                    Button {
                         showCalendarInfo.toggle()
+                    } label: {
+                        Label("About these forecasts", systemImage: "info.circle")
+                            .font(.system(size: 13, weight: .semibold, design: .rounded))
                     }
-                } label: {
-                    Label("About these forecasts", systemImage: "info.circle")
-                        .font(.system(size: 12.5, weight: .semibold, design: .rounded))
-                        .foregroundStyle(inkColor.opacity(0.62))
-                        .padding(.top, 16)
+                    .accessibilityIdentifier("calendarInfoButton")
+                    if showCalendarInfo {
+                        Text("Today and tomorrow use the latest available forecast inputs. Days 3–7 are outlooks and may change as weather models update. Sunrise and sunset times are calculated; sky colors and quality depend on the weather. All sky forecasts are estimates. Data percentages describe available inputs, not the probability that the forecast is correct.")
+                            .font(.system(size: 12, design: .rounded))
+                            .foregroundStyle(inkColor.opacity(0.65))
+                            .lineSpacing(4)
+                    }
                 }
-                .buttonStyle(.plain)
-                .accessibilityIdentifier("calendarInfoButton")
-
-                if showCalendarInfo {
-                    Text("Only today’s forecast is live. Other dates remain sample previews.")
-                        .font(.system(size: 11, weight: .medium, design: .rounded))
-                        .foregroundStyle(inkColor.opacity(0.55))
-                        .lineSpacing(3)
-                        .padding(.top, 10)
-                }
-
-                Spacer()
+                .padding(24)
             }
-            .padding(.horizontal, 24)
-            .padding(.top, 36)
+            .foregroundStyle(inkColor)
             .background(panelColor)
+            .task { await serverViewModel.loadCalendar() }
         }
+    }
+
+    private func calendarEvent(_ day: ForecastWeekDay, kind: SkyEventKind) -> some View {
+        let prediction = kind == .sunrise ? day.sunrisePrediction : day.sunsetPrediction
+        let iso = kind == .sunrise ? day.timeline?.milestones.sunriseIso : day.timeline?.milestones.sunsetIso
+        return VStack(alignment: .leading, spacing: 4) {
+            Label(kind == .sunrise ? "Sunrise" : "Sunset", systemImage: kind == .sunrise ? "sunrise" : "sunset")
+                .font(.system(size: 12, weight: .semibold, design: .rounded))
+            Text(ForecastMapper.milestoneTime(iso ?? prediction?.window.eventTimeIso))
+                .font(.system(size: 18, weight: .medium, design: .rounded))
+                .monospacedDigit()
+            Text(prediction.map { "\($0.score)/100 · \($0.confidence)% data" } ?? "Quality unavailable")
+                .font(.system(size: 10, design: .rounded))
+                .foregroundStyle(inkColor.opacity(0.6))
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     var settingsSheet: some View {
@@ -388,7 +411,7 @@ extension ContentView {
         VStack(alignment: .leading, spacing: 18) {
             Text("Youki Pro")
                 .font(.system(size: 20, weight: .bold, design: .rounded))
-            Text("A one-time Pro upgrade is planned. Purchases are not available yet, and today's live sky and golden-hour alarms remain free.")
+            Text("A one-time Pro upgrade is planned. Purchases are not available yet, and today and tomorrow's forecasts and golden-hour alarms remain free.")
                 .font(.system(size: 13, design: .rounded))
                 .foregroundStyle(inkColor.opacity(0.65))
             Button("Done") { activeSheet = nil }

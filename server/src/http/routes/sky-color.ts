@@ -1,4 +1,4 @@
-import { Hono } from "hono";
+import { Hono, type Context } from "hono";
 import type { SkyColorPredictionRequest, SkyEventKind } from "../../domain";
 import { ValidationError } from "../../application/errors";
 import {
@@ -9,11 +9,13 @@ import {
 } from "./request-validation";
 import type { PredictSkyColorService } from "../../application/services/predict-sky-color-service";
 
-export function createSkyColorRouter(service: PredictSkyColorService) {
+export function createSkyColorRouter(service: PredictSkyColorService,
+  authorize?: (request: SkyColorPredictionRequest, c: Context) => Promise<void>) {
   const router = new Hono();
 
   router.post("/estimate", async (c) => {
     const request = parseSkyColorRequest(await readJsonBody(c.req.raw), "flat");
+    await authorize?.(request, c);
     const response = await service.execute(request);
 
     return c.json(response, 200);
@@ -24,6 +26,7 @@ export function createSkyColorRouter(service: PredictSkyColorService) {
       await readJsonBody(c.req.raw),
       "nested",
     );
+    await authorize?.(request, c);
     const response = await service.execute(request);
 
     return c.json(response, 200);

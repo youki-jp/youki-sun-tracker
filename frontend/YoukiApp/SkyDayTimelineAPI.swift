@@ -167,3 +167,39 @@ struct SkyDayTimelineAPIClient {
         return decoded
     }
 }
+
+// The server returns seven dated rows. Free accounts receive locked outlook rows.
+struct ForecastWeekResponse: Decodable {
+    let location: SkyDayTimelineResponse.ResolvedLocation
+    let today: String
+    let generatedAtIso: String
+    let days: [ForecastWeekDay]
+}
+
+struct ForecastWeekDay: Decodable, Identifiable {
+    var id: String { targetDateIso }
+    let targetDateIso: String
+    let forecastType: String
+    let locked: Bool
+    let timeline: SkyDayTimelineResponse?
+    let predictions: SkyColorAPIResponse?
+    let errors: [String]
+
+    var isAvailable: Bool { !locked && (timeline != nil || predictions != nil) }
+    var sunrisePrediction: SkyColorAPIResponse.SkyColorPrediction? {
+        predictions?.predictions.first { $0.kind == .sunrise }
+    }
+    var sunsetPrediction: SkyColorAPIResponse.SkyColorPrediction? {
+        predictions?.predictions.first { $0.kind == .sunset }
+    }
+}
+
+extension SkyDayTimelineAPIClient {
+    func fetchWeek(_ coordinates: ForecastCoordinates) async throws -> ForecastWeekResponse {
+        try await AuthenticatedJSONTransport.post(
+            to: baseURL.appendingPathComponent("api/v1/sky-day/week"),
+            body: SkyDayTimelineRequest(location: .init(latitude: coordinates.latitude,
+                longitude: coordinates.longitude, altitudeMeters: coordinates.altitudeMeters), targetDateIso: nil),
+            fallbackErrorMessage: "Calendar request failed")
+    }
+}

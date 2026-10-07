@@ -1,5 +1,10 @@
 # Agent Entry Point
 
+Before connecting to a backend or changing deployment configuration, read
+[`docs/handover.md`](docs/handover.md). The deployed backend is
+`https://206.189.178.229.sslip.io`; SSH is `ssh deploy@206.189.178.229`.
+The `youki-server-2idly.ondigitalocean.app` address is legacy App Platform.
+
 Before changing this repository, read:
 
 1. [`CLAUDE.md`](CLAUDE.md) for the current project state and source map.

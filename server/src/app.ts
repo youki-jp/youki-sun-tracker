@@ -9,6 +9,12 @@ import { AuthService, publicAccount } from "./infrastructure/auth/auth-service";
 import { createHealthRouter } from "./http/routes/health";
 import { createSkyColorRouter } from "./http/routes/sky-color";
 import { createSkyDayRouter } from "./http/routes/sky-day";
+import { ForecastAccess } from "./application/services/forecast-access";
+import { ForecastWeekService } from "./application/services/forecast-week-service";
+import { OpenMeteoClient } from "./infrastructure/open-meteo/open-meteo-client";
+import { OpenMeteoTimezoneResolver } from "./infrastructure/open-meteo/open-meteo-timezone-resolver";
+import { parseLocation, readJsonBody, isRecord } from "./http/routes/request-validation";
+import type { SkyDayTimelineRequest } from "./domain";
 
 export function createApp(auth: AuthService) {
   const app = new Hono();
@@ -107,8 +113,26 @@ export function createApp(auth: AuthService) {
   };
   app.use("/api/v1/sky-color/*", forecastGuard);
   app.use("/api/v1/sky-day/*", forecastGuard);
-  app.route("/api/v1/sky-color", createSkyColorRouter(createPredictSkyColorService()));
-  app.route("/api/v1/sky-day", createSkyDayRouter(createSkyDayTimelineService()));
+  const predictionService = createPredictSkyColorService();
+  const timelineService = createSkyDayTimelineService();
+  const access = new ForecastAccess(new OpenMeteoTimezoneResolver(new OpenMeteoClient("https://api.open-meteo.com")));
+  const authorizeDate = async (request: SkyDayTimelineRequest, c: Context) => {
+    const account = await auth.authenticate(c.req.header("authorization"));
+    const resolved = await access.resolve(request.location, request.targetDateIso, account.tier);
+    request.targetDateIso = resolved.targetDateIso;
+  };
+  // One quota admission for a bounded range; sequential days reuse provider caches.
+  app.post("/api/v1/sky-day/week", async (c) => {
+    const account = await auth.authenticate(c.req.header("authorization"));
+    const body = await readJsonBody(c.req.raw);
+    if (!isRecord(body)) throw new ValidationError("Request body must be an object.");
+    const location = parseLocation(body.location);
+    const response = await new ForecastWeekService(access, timelineService, predictionService).execute(location, account.tier);
+    c.header("Cache-Control", "no-store");
+    return c.json(response);
+  });
+  app.route("/api/v1/sky-color", createSkyColorRouter(predictionService, authorizeDate));
+  app.route("/api/v1/sky-day", createSkyDayRouter(timelineService, authorizeDate));
 
   app.notFound((c) => c.json({ error: { code: "not_found", message: "Route not found." } }, 404));
   app.onError((error, c) => {

@@ -2,6 +2,15 @@
 
 Read this file before making changes. It is the shortest reliable summary of the current project state for Claude and other coding agents.
 
+## Deployment handover: read before connecting
+
+The current Droplet backend is `https://206.189.178.229.sslip.io`.
+Connect with `ssh deploy@206.189.178.229`; the repository is `/opt/youki`.
+Read [`docs/handover.md`](docs/handover.md) for env paths, CI/CD evidence,
+local versus deployed changes, and simulator configuration. The iOS Release
+source default still contains the legacy App Platform URL, so explicitly set
+`BACKEND_URL` to the Droplet for hosted runs.
+
 ## Current State
 
 Youki is a sunrise and sunset sky-color forecast prototype with two parts:
@@ -9,7 +18,7 @@ Youki is a sunrise and sunset sky-color forecast prototype with two parts:
 - `frontend/` is an iOS 17+ SwiftUI app. The main screen requests the current device location and loads the current forecast from the prediction API, with local Tokyo sample data as a fallback.
 - `server/` is a Bun + Hono TypeScript backend. It calls Open-Meteo, normalizes solar, weather, and air-quality data, and returns heuristic sky-color predictions.
 
-The 2026-09-28 auth implementation adds native Sign in with Apple, Youki-owned SQLite sessions and Free/Pro entitlements, authenticated forecast routes, and quotas. Drizzle manages the SQLite schema and migrations. It is implemented and tested locally but not deployed or verified with live Apple credentials. Read [`docs/auth-implementation.md`](docs/auth-implementation.md) before changing or deploying account code. The 2026-10-03 temporary deployment mode uses `AUTH_MODE=temporary` and `YOOKI_TEST_USER_PASSWORD` without Apple credentials, preserves backend sessions/quotas, and disables Apple login. See [`server/deploy/README.md`](server/deploy/README.md); live Droplet deployment remains unverified.
+The 2026-09-28 auth implementation adds native Sign in with Apple, Youki-owned SQLite sessions and Free/Pro entitlements, authenticated forecast routes, and quotas. Drizzle manages the SQLite schema and migrations. It is implemented and tested locally but not deployed or verified with live Apple credentials. Read [`docs/auth-implementation.md`](docs/auth-implementation.md) before changing or deploying account code. The 2026-10-03 temporary deployment mode uses `AUTH_MODE=temporary` and `YOOKI_TEST_USER_PASSWORD` without Apple credentials, preserves backend sessions/quotas, and disables Apple login. See [`server/deploy/README.md`](server/deploy/README.md); the earlier temporary-auth deployment completed successfully (run `37120575640`), with user-confirmed app login. The subsequent weekly forecast UX changes remain local.
 
 The UI prototype and backend are intentionally at different integration stages. Do not assume that changing a backend response will automatically change the iOS screen.
 
@@ -24,6 +33,8 @@ The live sky gradient is implemented as Option A from [`docs/sky-gradient-implem
 - `server/src/app.ts`: Hono app composition, routes, and error handling.
 - `server/src/http/routes/`: HTTP parsing and health endpoints.
 - `server/src/application/services/predict-sky-color-service.ts`: orchestration use case.
+- `server/src/application/services/forecast-week-service.ts`: bounded weekly orchestration with per-day partial failure support.
+- `server/src/application/services/forecast-access.ts`: timezone-local Free/Pro date limits.
 - `server/src/application/services/sky-gradient-service.ts`: normalized timeline-grid join and gradient orchestration.
 - `server/src/application/ports/`: provider and engine interfaces.
 - `server/src/domain/`: location, solar, weather, air-quality, prediction, and gradient types.
@@ -112,8 +123,8 @@ DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer xcodebuild \
 
 ## Important Limitations
 
-- The iOS app displays the current live target day when location and backend requests succeed, otherwise it keeps the curated sample data visible and reports the error.
-- The backend response currently supplies one requested target day per call. The full seven-day calendar still requires additional API orchestration.
+- Signed-out users see sign-in. Signed-in users see today initially and can select a dated forecast from the backend weekly calendar; errors and unavailable fields are shown explicitly. Samples are development previews.
+- `POST /api/v1/sky-day/week` returns seven dated rows with timeline/predictions and per-day errors. Free accounts receive today/tomorrow and locked outlook rows; Pro receives all seven. Single-day endpoints also enforce the horizon (Free 0-1, Pro 0-6) in the location timezone. Days 3-7 are outlooks, and the existing confidence number is displayed as input coverage rather than a probability of accuracy.
 - Solar event times come from Open-Meteo daily sunrise and sunset values. Elevation and azimuth within the window are computed with the NOAA solar position algorithm in `server/src/infrastructure/solar/solar-position.ts`.
 - The semantic sky-color scorer still uses nearest hourly weather and air-quality samples; the Swift sky-gradient path interpolates the bracketing rows locally.
 - The backend does not expose a generated gradient snapshot endpoint by design; Option A keeps rendering and minute-level animation on the client.

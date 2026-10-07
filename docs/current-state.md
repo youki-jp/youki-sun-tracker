@@ -1,10 +1,14 @@
 # Current Project State
 
-Updated: 2026-10-03
+Updated: 2026-10-07
+
+Current connection details and session history: [handover](handover.md). API `https://206.189.178.229.sslip.io`, SSH `deploy@206.189.178.229`, checkout `/opt/youki`. Live evidence dates to October 3; weekly changes remain local.
 
 Auth update (2026-09-28): source now includes Sign in with Apple, SQLite-backed Youki sessions and Free/Pro entitlements, authenticated forecast routes, and shared quota counters. Drizzle manages SQLite migrations. This has not been deployed or verified end-to-end against live Apple services. See [auth implementation](auth-implementation.md) for the authoritative auth status.
 
 Refactor update (2026-09-28): the iOS client rechecks device location on load and foreground return, reuses a forecast within 10 km of its successful-fetch anchor while it remains fresh, and refreshes after 30 minutes or a local-day change. Sky and score freshness are tracked separately. The backend now shares forecast input validation and strict Open-Meteo local-timestamp normalization. Account views and authenticated forecast transport were split into focused components. See the [refactor implementation summary](artifacts/2026-09-28-refactor-cleanup.md) and [implementation backlog](architecture/2026-09-28-refactor-backlog.md).
+
+UX update (2026-10-03): signed-out users now enter through sign-in instead of a sample forecast. The forecast header identifies its date and shows a separate next upcoming event, including tomorrow after today's events. Free accounts can request today/tomorrow; Pro can request today plus six days. The new weekly calendar loads actual backend data, separates sunrise/sunset, and marks days 3-7 as outlooks. See [weekly forecast implementation](artifacts/2026-10-03-weekly-forecast-experience.md). This change is local and has not been deployed.
 
 ## Product
 
@@ -68,7 +72,7 @@ The frontend mirrors the Youki mock and can now load the current forecast from t
 - Settings sheet
 - Paywall preview
 
-The screen starts with `PrototypeDay.sampleDays` as a fallback. After authentication it requests device location and calls `POST /api/v1/sky-color/predictions`, mapping the live response into the existing presentation model. Live score, color palette, confidence, reasons, event times, cloud cover, and UV values are displayed when the request succeeds.
+The signed-out entry is a welcome/sign-in screen with no dismiss button. Existing valid sessions open the forecast directly. Sample data remains available only through development preview paths. After authentication it requests device location and calls `POST /api/v1/sky-color/predictions`, mapping the live response into the existing presentation model. Live score, color palette, confidence, reasons, event times, cloud cover, and UV values are displayed when the request succeeds.
 
 The screen also requests `POST /api/v1/sky-day/timeline`, interpolates solar/weather/air-quality rows locally, and renders the unchanged nine-stop gradient beneath a scene with a geometry-gated sun, twilight glow, and seeded layered clouds. Radiation-supported daylight is distinguished from a cloud-cover estimate and unavailable inputs. Same-day refresh failures retain the scene with a stale indication; score freshness is tracked independently so a failed score refresh does not present an older score as current. A foreground minute task refreshes presentation without doing network work in a view body. Device-location mode obtains a fresh location on load and foreground return; fixes within 10 km of the last successful forecast location reuse cached data until the 30-minute or local-day refresh is due. A move beyond 10 km loads a forecast for the new coordinates. Manual coordinates remain selected until the user returns to device location. The location chip reverse-geocodes coordinates to a city/region name, with a generic fallback if lookup fails. Synthetic debug fixtures and Foundation-only regressions cover clear/broken cloud, overcast, missing-data, night, and interpolation edges.
 
@@ -76,10 +80,10 @@ The screen also requests `POST /api/v1/sky-day/timeline`, interpolates solar/wea
 
 - The first golden-hour alarm flow is implemented: sunrise/sunset selection, a lead time, actual timeline timing, one alarm's local persistence, and an availability-gated AlarmKit adapter. The installed Xcode 16.4 builds the unavailable path; the AlarmKit branch still needs an Xcode 26 build and physical iOS 26 verification. See [alarm design and status](alarm-first-draft.md).
 - Recurring smart alarms, ordinary notifications, widgets, subscriptions, saved locations, and forecast persistence remain previews or future work. The Settings sheet labels sunset alerts as “Coming later” because no notification is scheduled.
-- The calendar still displays the one live target day; it does not yet load a full seven-day set from the timeline endpoint.
+- The calendar now loads `POST /api/v1/sky-day/week`: seven dated rows with both events. Free accounts receive today/tomorrow and five locked rows; Pro receives all seven. Selecting a day updates the sky, score, analysis, and timeline together. Days 3-7 are marked as outlooks; data coverage is not a calibrated probability of accuracy.
 - The iOS target has no standalone unit-test target for the Swift math; simulator app/UI-target builds remain the available verification seam.
 - Weather and air-quality inputs remain hourly upstream; the client samples radiation and cloud inputs for the selected minute. The semantic scoring path intentionally retains nearest-sample behavior.
-- A Droplet CI/CD workflow now deploys pushes to `develop` using Docker Compose, Caddy HTTPS, and persistent SQLite. Temporary auth mode works without Apple credentials and exposes the existing test-account login. Live deployment and off-Droplet backups remain unverified. See [deployment setup](../server/deploy/README.md).
+- A Droplet CI/CD workflow now deploys pushes to `develop` using Docker Compose, Caddy HTTPS, and persistent SQLite. Temporary auth mode works without Apple credentials and exposes the existing test-account login. The earlier temporary-auth deployment completed successfully in GitHub Actions run `37120575640` and the user confirmed app login against the Droplet. The weekly UX change is not yet deployed; off-Droplet backups remain unverified. See [deployment setup](../server/deploy/README.md).
 
 ## Backend API
 
@@ -219,3 +223,11 @@ The rationale for each input is documented in [`docs/sky-color-prediction.md`](s
 ## Important Decision
 
 The backend remains the source of truth for solar geometry, external data aggregation, and semantic sky-color scoring. For the documented Option A gradient decision, the iOS app owns local grid interpolation, appearance generation, rendering, animation timing, fallback UI, and user interaction; it does not duplicate provider or solar-geometry logic.
+
+## Weekly forecast contract
+
+`POST /api/v1/sky-day/week` accepts the same nested `location` as the timeline endpoint and requires a session. It returns `location`, timezone-local `today`, `generatedAtIso`, and seven ordered `days`. Each row contains `targetDateIso`, `forecastType` (`forecast` for today/tomorrow or `outlook` for days 3-7), `locked`, nullable `timeline` and `predictions`, and readable `errors`. Locked rows contain no forecast data. Provider failures are reported per row; successful event times are retained when scores fail.
+
+All existing prediction and timeline routes enforce the date horizon on the server, including the flat estimate endpoint. Free can request offsets 0-1, Pro offsets 0-6; historical or later dates are rejected. The forecast location's timezone defines the dates. The weekly route consumes one existing quota admission and processes the bounded day range sequentially to reuse upstream caches.
+
+The app refreshes the calendar after 30 minutes and on location/day changes, supports explicit refresh, and retains older rows with an error if a refresh fails. Provider weather/air-quality responses retain the existing 15-minute cache. No accuracy calibration or new weather model was introduced. Today and tomorrow use the available provider inputs; longer-range colors/quality remain estimates.

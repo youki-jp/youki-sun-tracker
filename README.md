@@ -2,6 +2,15 @@
 
 Youki is a sunrise and sunset color forecast prototype. The repository contains a SwiftUI iOS client and a Bun + Hono TypeScript backend.
 
+## Current backend and handover
+
+- API: `https://206.189.178.229.sslip.io`
+- SSH: `ssh deploy@206.189.178.229`
+- Droplet checkout: `/opt/youki`
+- [Thread handover](docs/handover.md): deployment evidence, env paths, iOS URL override, and changes still local.
+
+Set `BACKEND_URL=https://206.189.178.229.sslip.io` in the Xcode Run scheme for hosted development. The Release source default still points at the legacy App Platform URL; it is not the current Droplet target.
+
 ## Repository layout
 
 - `server/` contains the HTTP API, application services, domain models, and Open-Meteo adapters.
@@ -51,9 +60,9 @@ The forecast routes require a Youki session. The service resolves the location t
 
 ## iOS prototype
 
-Open `frontend/YoukiApp/YoukiApp.xcodeproj` in Xcode and run the `YoukiApp` scheme on an iOS Simulator or connected device. The current screen is a local UI prototype with sample Tokyo forecast data. It includes the main forecast, expanded color analysis, forecast calendar, locations, paywall, and light/dark theme previews.
+Open `frontend/YoukiApp/YoukiApp.xcodeproj` in Xcode and run the `YoukiApp` scheme on an iOS Simulator or connected device. Signed-out users enter through sign-in; signed-in users see server-backed forecasts. It includes the main forecast, expanded color analysis, forecast calendar, locations, paywall, and light/dark theme previews.
 
-The SwiftUI app now has Sign in with Apple and a server-backed Free/Pro account state. Signed-out users can view a sample forecast; payment is not available. The SwiftUI source is organized by responsibility:
+The SwiftUI app now has Sign in with Apple and a server-backed Free/Pro account state. Free accounts can view today and tomorrow. Pro accounts can view the full seven-day calendar; days 3-7 are labeled outlooks. Payment is not available. The SwiftUI source is organized by responsibility:
 
 - `ContentView.swift` owns screen state and top-level composition.
 - `ForecastComponents.swift` contains the main forecast components.
@@ -64,4 +73,4 @@ The SwiftUI app now has Sign in with Apple and a server-backed Free/Pro account 
 
 ## Deployment
 
-The server deploys to a single DigitalOcean Droplet on pushes to `develop`, using Docker Compose, persistent SQLite storage, and Caddy HTTPS. `AUTH_MODE=temporary` supports the existing Free/Pro test accounts without any Apple credentials. Follow the [Droplet deployment guide](server/deploy/README.md) for setup and GitHub secrets. Deployment and off-Droplet backups still need live verification. The iOS release URL still points to the App Platform hostname until that cutover.
+The server deploys to a single DigitalOcean Droplet on pushes to `develop`, using Docker Compose, persistent SQLite storage, and Caddy HTTPS. `AUTH_MODE=temporary` supports the existing Free/Pro test accounts without any Apple credentials. Follow the [Droplet deployment guide](server/deploy/README.md) for setup and GitHub secrets. The temporary-auth deployment and app login have been observed working. The weekly forecast UX changes remain local; off-Droplet backups still need verification. The iOS release URL still points to the App Platform hostname until that cutover.

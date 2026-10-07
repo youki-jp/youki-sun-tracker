@@ -4,7 +4,7 @@ import AuthenticationServices
 struct ContentView: View {
     @StateObject var serverViewModel = ServerViewModel()
     @StateObject var authSession = AuthSession.shared
-    @State var selectedDayID = "today"
+    @State private var isRestoringSession = true
     @State var isSkyExpanded = false
     @State var activeSheet: ActiveSheet?
     @StateObject var alarmModel = GoldenHourAlarmViewModel()
@@ -32,12 +32,50 @@ struct ContentView: View {
         return String(selectedDay.qualityScore)
     }
 
-    var selectedDay: PrototypeDay? {
-        serverViewModel.forecastDays.first(where: { $0.id == selectedDayID })
-            ?? serverViewModel.forecastDays.first
+    var selectedDay: PrototypeDay? { serverViewModel.forecastDays.first }
+
+    private var isPreviewRun: Bool {
+        #if DEBUG
+        return ProcessInfo.processInfo.arguments.contains("-uiAudit")
+            || ProcessInfo.processInfo.arguments.contains { $0.hasPrefix("-uiSkyFixture") }
+        #else
+        return false
+        #endif
     }
 
     var body: some View {
+        Group {
+            if isRestoringSession {
+                ZStack {
+                    panelColor.ignoresSafeArea()
+                    ProgressView("Opening your sky…").tint(accentColor)
+                        .foregroundStyle(inkColor)
+                }
+            } else if authSession.isAuthenticated || isPreviewRun {
+                forecastBody
+            } else {
+                AccountEntryView(authSession: authSession, appTheme: appTheme,
+                                 onClose: {}, initialMode: .signIn)
+            }
+        }
+        .task {
+            await authSession.refreshAccount()
+            isRestoringSession = false
+        }
+        .onChange(of: authSession.account?.tier) { old, new in
+            if old != nil && new != nil && old != new {
+                Task { await serverViewModel.accountTierDidChange() }
+            }
+        }
+        .onChange(of: authSession.isAuthenticated) { _, signedIn in
+            showAccountScreen = false
+            activeSheet = nil
+            isSkyExpanded = false
+            if !signedIn { serverViewModel.showSample() }
+        }
+    }
+
+    private var forecastBody: some View {
         GeometryReader { proxy in
             let topInset = proxy.safeAreaInsets.top
             let bottomInset = proxy.safeAreaInsets.bottom
@@ -147,7 +185,7 @@ struct ContentView: View {
                         .presentationDragIndicator(.visible)
                 case .calendar:
                     calendarSheet
-                        .presentationDetents([.height(520)])
+                        .presentationDetents([.large])
                         .presentationDragIndicator(.visible)
                 case .settings:
                     settingsSheet
@@ -173,8 +211,7 @@ struct ContentView: View {
             if loading { isSkyExpanded = false }
         }
         .onChange(of: authSession.isAuthenticated) { _, signedIn in
-            if signedIn { Task { await serverViewModel.loadForecast() } }
-            else { serverViewModel.showSample() }
+            if !signedIn { serverViewModel.showSample() }
         }
         .onChange(of: scenePhase) { _, phase in
             serverViewModel.setForeground(phase == .active)
@@ -202,7 +239,7 @@ struct ContentView: View {
     func skyHeight(for proxy: GeometryProxy) -> CGFloat {
         isSkyExpanded
             ? proxy.size.height + proxy.safeAreaInsets.top + proxy.safeAreaInsets.bottom
-            : max(160, min(222, proxy.size.height * 0.29))
+            : max(200, min(244, proxy.size.height * 0.31))
     }
 
     func skyHero(height: CGFloat, topInset: CGFloat) -> some View {
@@ -241,15 +278,32 @@ struct ContentView: View {
                 .accessibilityIdentifier("locationButton")
                 .padding(.top, topInset + 10)
 
+                Text(serverViewModel.displayedDateLabel)
+                    .font(.system(size: 15, weight: .semibold, design: .rounded))
+                    .foregroundStyle(.white)
+                    .padding(.top, 10)
+                    .accessibilityIdentifier("forecastDateLabel")
+                Text(serverViewModel.forecastProvenance)
+                    .font(.system(size: 10, weight: .medium, design: .rounded))
+                    .foregroundStyle(.white.opacity(0.8))
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, 20)
+                    .padding(.top, 4)
+                Text(serverViewModel.nextEventLabel)
+                    .font(.system(size: 11, weight: .medium, design: .rounded))
+                    .foregroundStyle(.white.opacity(0.9))
+                    .padding(.top, 6)
+                    .accessibilityIdentifier("nextEventLabel")
+
                 if serverViewModel.isLoading {
                     ProgressView()
                         .tint(.white)
                         .scaleEffect(0.7)
                         .padding(.top, 12)
                         .accessibilityIdentifier("forecastLoadingIndicator")
-                } else if !serverViewModel.isLive && selectedDay != nil {
+                } else if serverViewModel.errorMessage != nil && selectedDay != nil {
                     Button(authSession.isAuthenticated ? "Retry" : "Sign in for live sky") {
-                        if authSession.isAuthenticated { Task { await serverViewModel.loadForecast() } }
+                        if authSession.isAuthenticated { Task { await serverViewModel.retryForecast() } }
                         else { showAccountScreen = true }
                     }
                     .font(.system(size: 11, weight: .bold, design: .rounded))
