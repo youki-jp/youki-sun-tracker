@@ -138,7 +138,7 @@ enum SkyGradientGenerator {
         let overcastF = clamp01(0.78 * cloudTotal + 0.30 * cloudLow - 0.08 * cloudHigh)
         let lowSunTint = exp(-pow((elevation + 1) / 11, 2))
 
-        let topL = clamp(
+        var topL = clamp(
             0.335 + 0.30 * overcastF + 0.22 * cloudHigh + 0.16 * dayF - 0.07 * highSun,
             0.14,
             0.90
@@ -151,12 +151,19 @@ enum SkyGradientGenerator {
         )
         let topH = 250 + (54 * overcastF + 12 * aerosolWarm) * lowSunTint
 
-        let botL = clamp(
+        var botL = clamp(
             0.510 + 0.26 * glowF + 0.12 * dayF + 0.11 * cloudTotal + 0.09 * cloudHigh
                 - 0.06 * overcastF * lowSunTint - 0.08 * haze - 0.10 * wet,
             0.30,
             0.94
         )
+        // Keep the sky bright through civil twilight, then transition to a
+        // genuinely dark night palette as the Sun drops below the horizon.
+        // Cloud cover still changes the colour, but must not make night look
+        // like an overcast afternoon.
+        let nightF = 1 - smoothstep(-14, -6, elevation)
+        topL = lerp(topL, 0.105, nightF)
+        botL = lerp(botL, 0.145, nightF)
         let warmVigour = clamp01(
             glowF * (1 - 0.60 * blocked) * (1 - 0.42 * haze) * (1 - 0.80 * wet)
         )
@@ -175,7 +182,11 @@ enum SkyGradientGenerator {
         func colourAt(_ y: Double) -> Oklch {
             let t = (warmStart >= 1 ? 0 : smoothstep(0, 1, clamp01((y - warmStart) / (1 - warmStart))))
                 * warmPresence
-            let hazeCeiling = 0.35 + 0.58 * dayF + 0.25 * overcastF + 0.30 * glowF
+            let hazeCeiling = lerp(
+                0.35 + 0.58 * dayF + 0.25 * overcastF + 0.30 * glowF,
+                0.16,
+                nightF
+            )
             let coolHorizonL = clamp(
                 max(topL, min(topL + coolRamp * (1 - 0.55 * overcastF), hazeCeiling)),
                 0.16,
