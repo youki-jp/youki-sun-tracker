@@ -47,14 +47,14 @@ struct GoldenHourAlarmSheet: View {
                     }
                     .pickerStyle(.segmented)
                     .accessibilityIdentifier("alarmEventPicker")
-                    Stepper("\(leadMinutes) minutes before golden hour", value: $leadMinutes, in: 0...120, step: 5)
+                    Stepper(AppLocalization.isJapanese ? "ゴールデンアワーの\(leadMinutes)分前" : "\(leadMinutes) minutes before golden hour", value: $leadMinutes, in: 0...120, step: 5)
                         .accessibilityIdentifier("alarmLeadStepper")
                     Text("One alarm for the next golden-hour window. If today's time has passed, we check tomorrow.")
                         .font(.footnote)
                         .foregroundStyle(theme.inkColor.opacity(0.65))
 
                     if let reason = model.unavailableReason {
-                        Text(reason)
+                        Text(AppLocalization.text(reason))
                             .accessibilityIdentifier("alarmUnavailable")
                     } else if isPreparing {
                         ProgressView("Finding the next golden hour…")
@@ -64,13 +64,13 @@ struct GoldenHourAlarmSheet: View {
                             .accessibilityIdentifier("scheduleAlarmButton")
                     }
                     if let previewError {
-                        Text(previewError).font(.footnote)
+                        Text(AppLocalization.text(previewError)).font(.footnote)
                         Button("Try again") { Task { await preparePreview() } }
                     }
                 }
                 if model.isBusy { ProgressView("Updating alarm…") }
                 if let error = model.errorMessage {
-                    Text(error)
+                    Text(AppLocalization.text(error))
                         .font(.footnote)
                         .accessibilityIdentifier("alarmError")
                 }
@@ -83,19 +83,20 @@ struct GoldenHourAlarmSheet: View {
         .foregroundStyle(theme.inkColor)
         .background(theme.panelColor)
         .tint(theme.accentColor)
+        .task { await model.prepareForDisplay() }
         .task(id: previewKey) { await preparePreview() }
         .onAppear { event = server.selectedMoment.isEvening ? .sunset : .sunrise }
     }
 
     private func alarmDetails(_ request: GoldenHourAlarmRequest) -> some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("\(request.event.label) · \(request.locationName)")
+            Text("\(request.event.label) · \(AppLocalization.text(request.locationName))")
                 .font(.headline)
-            Text("Alarm: \(formatted(request.fireDate, timezone: request.timezoneID))")
+            Text(AppLocalization.isJapanese ? "アラーム：\(formatted(request.fireDate, timezone: request.timezoneID))" : "Alarm: \(formatted(request.fireDate, timezone: request.timezoneID))")
                 .font(.system(size: 20, weight: .semibold, design: .rounded))
                 .accessibilityIdentifier("alarmTime")
-            Text("Golden hour: \(formatted(request.goldenHourDate, timezone: request.timezoneID))")
-            Text("\(request.leadMinutes) minutes before · \(request.timezoneID)")
+            Text(AppLocalization.isJapanese ? "ゴールデンアワー：\(formatted(request.goldenHourDate, timezone: request.timezoneID))" : "Golden hour: \(formatted(request.goldenHourDate, timezone: request.timezoneID))")
+            Text(AppLocalization.isJapanese ? "\(request.leadMinutes)分前 · \(request.timezoneID)" : "\(request.leadMinutes) minutes before · \(request.timezoneID)")
                 .font(.footnote)
         }
         .padding(18)
@@ -105,7 +106,7 @@ struct GoldenHourAlarmSheet: View {
 
     private func actionButton(_ title: String, action: @escaping () async -> Void) -> some View {
         Button { Task { await action() } } label: {
-            Text(title)
+            Text(AppLocalization.text(title))
                 .fontWeight(.bold)
                 .frame(maxWidth: .infinity)
                 .padding(16)
@@ -117,6 +118,7 @@ struct GoldenHourAlarmSheet: View {
 
     private func formatted(_ date: Date, timezone: String) -> String {
         let formatter = DateFormatter()
+        formatter.locale = AppLocalization.locale
         formatter.timeZone = TimeZone(identifier: timezone)
         formatter.dateStyle = .medium
         formatter.timeStyle = .short

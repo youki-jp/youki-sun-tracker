@@ -33,9 +33,9 @@ private enum SessionError: LocalizedError, Equatable {
 
     var errorDescription: String? {
         switch self {
-        case .signInRequired: "Sign in to load a live forecast."
-        case .invalidResponse: "The account server returned an invalid response."
-        case .server(let message): message
+        case .signInRequired: AppLocalization.text("Sign in to load a live forecast.")
+        case .invalidResponse: AppLocalization.text("The account server returned an invalid response.")
+        case .server(let message): AppLocalization.text(message)
         }
     }
 }

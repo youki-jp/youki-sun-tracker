@@ -108,11 +108,10 @@ final class ServerViewModel: ObservableObject {
 
     func isAvailable(_ moment: SkyMoment) -> Bool {
         if timeline != nil {
-            if moment == .now, let timeline {
-                return SkySceneSampler(timeline: timeline).scene(at: now()) != nil
-            }
+            if moment == .now { return true }
             return scenes[moment] != nil
         }
+        if moment == .now { return predictions != nil }
         if moment == .sunrise || moment == .sunset {
             return predictions?.predictions.contains { $0.kind == (moment == .sunrise ? .sunrise : .sunset) } ?? false
         }
@@ -123,6 +122,19 @@ final class ServerViewModel: ObservableObject {
         guard isAvailable(moment) else { return }
         if moment == .now { currentDate = now() }
         selectedMoment = moment
+        rebuildPresentation()
+    }
+
+    func selectNow() {
+        let today = Self.localDate(now(), timezone: calendarTimezone ?? timeline?.location.timezoneId ?? "UTC")
+        if selectedDateIso != nil, let today,
+           let todayForecast = calendarDays.first(where: { $0.id == today && $0.isAvailable }) {
+            selectDay(todayForecast)
+            return
+        }
+        selectedDateIso = nil
+        currentDate = now()
+        selectedMoment = .now
         rebuildPresentation()
     }
 
@@ -305,23 +317,12 @@ final class ServerViewModel: ObservableObject {
         case .failure(let error):
             failures.append("Score: " + error.localizedDescription)
         }
-        if hasLiveSky, let firstAvailable = SkyMoment.allCases.first(where: { scenes[$0] != nil }) {
+        if hasLiveSky {
             currentDate = now()
             if let timeline, let currentScene = SkySceneSampler(timeline: timeline).scene(at: currentDate) {
                 scenes[.now] = currentScene
-                selectedMoment = .now
-            } else {
-                selectedMoment = firstAvailable == .now
-                    ? (SkyMoment.allCases.first(where: { $0 != .now && scenes[$0] != nil }) ?? .now)
-                    : firstAvailable
             }
-        } else if hasLiveForecast {
-            let availableKinds = predictions?.predictions.map(\.kind) ?? []
-            if !availableKinds.contains(.sunrise) {
-                selectedMoment = .sunset
-            } else if !availableKinds.contains(.sunset) {
-                selectedMoment = .sunrise
-            }
+            selectedMoment = .now
         }
         isLoading = false
         errorMessage = failures.isEmpty ? nil : failures.joined(separator: "\n")
@@ -477,7 +478,7 @@ final class ServerViewModel: ObservableObject {
             scoreRetrievedAt = nil
             failures.append("Score refresh failed; showing sky details without a current score.")
         }
-        if scenes[selectedMoment] == nil {
+        if selectedMoment != .now, scenes[selectedMoment] == nil {
             selectedMoment = scenes[.now] != nil ? .now :
                 (SkyMoment.allCases.first { scenes[$0] != nil } ?? .now)
         }
@@ -582,7 +583,7 @@ final class ServerViewModel: ObservableObject {
         retrievedAt = calendarRetrievedAt
         scoreRetrievedAt = calendarRetrievedAt
         if !keepMoment || !isAvailable(selectedMoment) {
-            if day.id == Self.localDate(now(), timezone: calendarTimezone ?? ""), scenes[.now] != nil {
+            if day.id == Self.localDate(now(), timezone: calendarTimezone ?? "") {
                 selectedMoment = .now
             } else {
                 selectedMoment = SkyMoment.allCases.first { $0 != .now && scenes[$0] != nil }
@@ -605,10 +606,10 @@ final class ServerViewModel: ObservableObject {
     var calendarUpdatedLabel: String? {
         guard let calendarRetrievedAt else { return nil }
         let formatter = DateFormatter()
-        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.locale = AppLocalization.locale
         formatter.timeZone = TimeZone(identifier: calendarTimezone ?? "UTC")
         formatter.dateFormat = "MMM d, HH:mm"
-        return "Updated " + formatter.string(from: calendarRetrievedAt)
+        return (AppLocalization.isJapanese ? "更新 " : "Updated ") + formatter.string(from: calendarRetrievedAt)
     }
 
     var displayedDateLabel: String {
@@ -628,10 +629,11 @@ final class ServerViewModel: ObservableObject {
         guard let date = formatter.date(from: day) else { return day }
         let tomorrow = today.flatMap { formatter.date(from: $0) }.map { $0.addingTimeInterval(86_400) }
             .map { formatter.string(from: $0) }
+        formatter.locale = AppLocalization.locale
         formatter.dateFormat = "EEE, MMM d"
         let label = formatter.string(from: date)
-        if day == today { return "Today · " + label }
-        if day == tomorrow { return "Tomorrow · " + label }
+        if day == today { return AppLocalization.isJapanese ? "今日 · " + label : "Today · " + label }
+        if day == tomorrow { return AppLocalization.isJapanese ? "明日 · " + label : "Tomorrow · " + label }
         return label
     }
 
@@ -644,9 +646,16 @@ final class ServerViewModel: ObservableObject {
         let updated = generated.flatMap { formatter.date(from: $0) }
         let clock = DateFormatter()
         clock.timeZone = TimeZone(identifier: timeline?.location.timezoneId ?? calendarTimezone ?? "UTC")
+        clock.locale = AppLocalization.locale
         clock.dateFormat = "HH:mm"
         let update = updated.map { " · Updated " + clock.string(from: $0) } ?? ""
         let earlier = updated.map { now().timeIntervalSince($0) > 1_800 } ?? false
+        if AppLocalization.isJapanese {
+            let prefix = earlier ? "以前の予報 · " : ""
+            let forecast = isOutlook ? "予測 · 天候により変わる場合があります" : "予報 · " + (forecastDays.first?.confidenceLabel ?? "入力データなし")
+            let japaneseUpdate = updated.map { " · 更新 " + clock.string(from: $0) } ?? ""
+            return prefix + forecast + japaneseUpdate
+        }
         let prefix = earlier ? "Earlier forecast · " : ""
         return prefix + (isOutlook ? "Outlook · Conditions may change" : "Forecast · " + (forecastDays.first?.confidenceLabel ?? "Input coverage unavailable")) + update
     }
@@ -661,7 +670,7 @@ final class ServerViewModel: ObservableObject {
     var nextEventLabel: String {
         let today = timeline.flatMap { Self.localDate(now(), timezone: $0.location.timezoneId) }
             ?? calendarToday
-        guard let today else { return "Upcoming events unavailable" }
+        guard let today else { return AppLocalization.text("Upcoming events unavailable") }
         var candidates = calendarDays.compactMap(\.timeline)
         if let timeline, !candidates.contains(where: { $0.targetDateIso == timeline.targetDateIso }) {
             candidates.append(timeline)
@@ -670,14 +679,15 @@ final class ServerViewModel: ObservableObject {
             guard let local = Self.localDateTime(now(), timezone: day.location.timezoneId) else { continue }
             for moment in SkyMoment.allCases where moment != .now {
                 if let iso = moment.localIso(in: day.milestones), iso > local {
-                    let prefix = day.targetDateIso == today ? "Today" : dateLabel(day.targetDateIso).components(separatedBy: " · ").first ?? day.targetDateIso
+                    let prefix = day.targetDateIso == today ? AppLocalization.text("Today") : dateLabel(day.targetDateIso).components(separatedBy: " · ").first ?? day.targetDateIso
+                    if AppLocalization.isJapanese { return "次のイベント：\(prefix) · \(moment.label) · \(ForecastMapper.milestoneTime(iso))" }
                     return "Next: \(prefix) · \(moment.label.lowercased()) · \(ForecastMapper.milestoneTime(iso))"
                 }
             }
         }
-        if isCalendarLoading { return "Loading upcoming events…" }
-        if calendarError != nil { return "Upcoming events unavailable · Refresh to retry" }
-        return "No upcoming event available"
+        if isCalendarLoading { return AppLocalization.text("Loading upcoming events…") }
+        if calendarError != nil { return AppLocalization.text("Upcoming events unavailable · Refresh to retry") }
+        return AppLocalization.text("No upcoming event available")
     }
 
     private static func offsetDay(_ day: String, by offset: Int) -> String? {

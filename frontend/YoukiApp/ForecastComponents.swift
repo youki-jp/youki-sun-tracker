@@ -21,7 +21,7 @@ extension ContentView {
                 .lineLimit(1)
                 .minimumScaleFactor(0.8)
 
-            Text(selectedDay?.summaryLabel ?? "")
+            Text(AppLocalization.text(selectedDay?.summaryLabel ?? ""))
                 .font(.system(size: compact ? 13 : 14, weight: .semibold, design: .rounded))
                 .lineLimit(2)
                 .minimumScaleFactor(0.85)
@@ -34,7 +34,7 @@ extension ContentView {
                 .accessibilityIdentifier("selectedEventTime")
                 .font(.system(size: compact ? 21 : 24, weight: .medium, design: .rounded))
 
-            Text(selectedDay?.heroSubtitle ?? "")
+                Text(AppLocalization.text(selectedDay?.heroSubtitle ?? ""))
                 .font(.system(size: compact ? 10 : 11, weight: .semibold, design: .rounded))
                 .foregroundStyle(accentColor)
                 .multilineTextAlignment(alignment == .trailing ? .trailing : .leading)
@@ -119,6 +119,7 @@ extension ContentView {
                     }
                     .padding(.horizontal, 10)
                     .frame(height: rowHeight)
+                    .frame(maxWidth: .infinity)
                     .background(
                         RoundedRectangle(cornerRadius: 12, style: .continuous)
                             .fill(moment == selectedMoment ? accentColor.opacity(0.09) : .clear)
@@ -129,6 +130,7 @@ extension ContentView {
                                 .padding(.leading, 30)
                         }
                     }
+                    .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
                 .accessibilityIdentifier("moment.\(moment.id)")
@@ -226,7 +228,7 @@ extension ContentView {
             Text(serverViewModel.isLoading ? "Loading forecast" : "Forecast unavailable")
                 .font(.system(size: 18, weight: .semibold, design: .rounded))
             if let error = serverViewModel.errorMessage {
-                Text(error)
+                Text(AppLocalization.text(error))
                     .font(.system(size: 12, design: .rounded))
                     .multilineTextAlignment(.center)
             }
@@ -259,7 +261,7 @@ extension ContentView {
             }
             .padding(.top, 12)
 
-            Text(selectedDay?.analysisText ?? "")
+                Text(AppLocalization.text(selectedDay?.analysisText ?? ""))
                 .font(.system(size: 13.5, weight: .medium, design: .rounded))
                 .foregroundStyle(.white.opacity(0.92))
                 .lineSpacing(4)
@@ -319,7 +321,7 @@ extension ContentView {
 
     func analysisMetric(title: String, value: String) -> some View {
         VStack(alignment: .leading, spacing: 4) {
-            Text(title.uppercased())
+            Text(AppLocalization.text(title).uppercased())
                 .font(.system(size: 9.5, weight: .bold, design: .rounded))
                 .foregroundStyle(.white.opacity(0.58))
 

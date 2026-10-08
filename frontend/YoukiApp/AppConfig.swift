@@ -5,7 +5,7 @@ enum AppConfig {
     #if DEBUG
     static let defaultServerURLString = "http://localhost:3000"
     #else
-    static let defaultServerURLString = "https://youki-server-2idly.ondigitalocean.app"
+    static let defaultServerURLString = "https://206.189.178.229.sslip.io"
     #endif
 
     static var serverURL: URL {

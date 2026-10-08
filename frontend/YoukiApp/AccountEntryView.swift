@@ -276,7 +276,7 @@ struct AccountEntryView: View {
     private var authErrorMessage: some View {
         if let errorMessage = authSession.errorMessage {
             VStack(spacing: 8) {
-                Text(errorMessage)
+                Text(AppLocalization.text(errorMessage))
                     .font(.system(size: 12, design: .rounded))
                     .foregroundStyle(accentColor)
                     .multilineTextAlignment(.center)

@@ -18,8 +18,6 @@
 		A1000000000000000000000A /* SkyBackgroundView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1000000000000000000000A /* SkyBackgroundView.swift */; };
 		A1000000000000000000000B /* Color+Hex.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1000000000000000000000B /* Color+Hex.swift */; };
 		A1000000000000000000000C /* SkyColorAPI.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1000000000000000000000C /* SkyColorAPI.swift */; };
-		A1000000000000000000001D /* AuthSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1000000000000000000001D /* AuthSession.swift */; };
-		A1000000000000000000001E /* AccountScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1000000000000000000001E /* AccountScreen.swift */; };
 		A1000000000000000000000D /* LocationManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1000000000000000000000D /* LocationManager.swift */; };
 		A1000000000000000000000E /* ForecastMapper.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1000000000000000000000E /* ForecastMapper.swift */; };
 		A1000000000000000000000F /* SkyDayTimelineAPI.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1000000000000000000000F /* SkyDayTimelineAPI.swift */; };
@@ -35,8 +33,12 @@
 		A1000000000000000000001A /* AlarmKitScheduler.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1000000000000000000001A /* AlarmKitScheduler.swift */; };
 		A1000000000000000000001B /* GoldenHourAlarmSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1000000000000000000001B /* GoldenHourAlarmSheet.swift */; };
 		A1000000000000000000001C /* GoldenHourAlarmPlanner.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1000000000000000000001C /* GoldenHourAlarmPlanner.swift */; };
+		A1000000000000000000001D /* AuthSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1000000000000000000001D /* AuthSession.swift */; };
+		A1000000000000000000001E /* AccountScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1000000000000000000001E /* AccountScreen.swift */; };
 		A10000000000000000000020 /* AccountEntryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000020 /* AccountEntryView.swift */; };
 		A10000000000000000000021 /* AccountManagementView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000021 /* AccountManagementView.swift */; };
+		A10000000000000000000022 /* Localizable.strings in Resources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000022 /* Localizable.strings */; };
+		A10000000000000000000023 /* AppLocalization.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000024 /* AppLocalization.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -63,8 +65,6 @@
 		B1000000000000000000000A /* SkyBackgroundView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SkyBackgroundView.swift; sourceTree = "<group>"; };
 		B1000000000000000000000B /* Color+Hex.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Color+Hex.swift"; sourceTree = "<group>"; };
 		B1000000000000000000000C /* SkyColorAPI.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SkyColorAPI.swift; sourceTree = "<group>"; };
-		B1000000000000000000001D /* AuthSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthSession.swift; sourceTree = "<group>"; };
-		B1000000000000000000001E /* AccountScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AccountScreen.swift; sourceTree = "<group>"; };
 		B1000000000000000000000D /* LocationManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocationManager.swift; sourceTree = "<group>"; };
 		B1000000000000000000000E /* ForecastMapper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ForecastMapper.swift; sourceTree = "<group>"; };
 		B1000000000000000000000F /* SkyDayTimelineAPI.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SkyDayTimelineAPI.swift; sourceTree = "<group>"; };
@@ -81,8 +81,12 @@
 		B1000000000000000000001A /* AlarmKitScheduler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AlarmKitScheduler.swift; sourceTree = "<group>"; };
 		B1000000000000000000001B /* GoldenHourAlarmSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GoldenHourAlarmSheet.swift; sourceTree = "<group>"; };
 		B1000000000000000000001C /* GoldenHourAlarmPlanner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GoldenHourAlarmPlanner.swift; sourceTree = "<group>"; };
+		B1000000000000000000001D /* AuthSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthSession.swift; sourceTree = "<group>"; };
+		B1000000000000000000001E /* AccountScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AccountScreen.swift; sourceTree = "<group>"; };
 		B10000000000000000000020 /* AccountEntryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AccountEntryView.swift; sourceTree = "<group>"; };
 		B10000000000000000000021 /* AccountManagementView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AccountManagementView.swift; sourceTree = "<group>"; };
+		B10000000000000000000023 /* ja */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = ja; path = ja.lproj/Localizable.strings; sourceTree = "<group>"; };
+		B10000000000000000000024 /* AppLocalization.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppLocalization.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -130,6 +134,8 @@
 				B1000000000000000000001E /* AccountScreen.swift */,
 				B10000000000000000000020 /* AccountEntryView.swift */,
 				B10000000000000000000021 /* AccountManagementView.swift */,
+				B10000000000000000000022 /* Localizable.strings */,
+				B10000000000000000000024 /* AppLocalization.swift */,
 				B1000000000000000000000D /* LocationManager.swift */,
 				B1000000000000000000000E /* ForecastMapper.swift */,
 				B1000000000000000000000F /* SkyDayTimelineAPI.swift */,
@@ -227,6 +233,7 @@
 			knownRegions = (
 				en,
 				Base,
+				ja,
 			);
 			mainGroup = D10000000000000000000001;
 			minimizedProjectReferenceProxies = 1;
@@ -247,6 +254,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				A10000000000000000000005 /* Assets.xcassets in Resources */,
+				A10000000000000000000022 /* Localizable.strings in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -258,6 +266,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				A10000000000000000000004 /* AppConfig.swift in Sources */,
+				A10000000000000000000023 /* AppLocalization.swift in Sources */,
 				A10000000000000000000002 /* ContentView.swift in Sources */,
 				A10000000000000000000003 /* ServerViewModel.swift in Sources */,
 				A10000000000000000000001 /* YoukiApp.swift in Sources */,
@@ -305,6 +314,17 @@
 			targetProxy = K10000000000000000000001 /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
+
+/* Begin PBXVariantGroup section */
+		B10000000000000000000022 /* Localizable.strings */ = {
+			isa = PBXVariantGroup;
+			children = (
+				B10000000000000000000023 /* ja */,
+			);
+			name = Localizable.strings;
+			sourceTree = "<group>";
+		};
+/* End PBXVariantGroup section */
 
 /* Begin XCBuildConfiguration section */
 		G10000000000000000000003 /* Debug */ = {
@@ -358,9 +378,9 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
-				CODE_SIGN_STYLE = Automatic;
 				CODE_SIGN_ENTITLEMENTS = YoukiApp.entitlements;
-				CURRENT_PROJECT_VERSION = 1;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 6;
 				DEVELOPMENT_TEAM = 3U39S7T8GK;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = NO;
@@ -384,9 +404,9 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
-				CODE_SIGN_STYLE = Automatic;
 				CODE_SIGN_ENTITLEMENTS = YoukiApp.entitlements;
-				CURRENT_PROJECT_VERSION = 1;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 6;
 				DEVELOPMENT_TEAM = 3U39S7T8GK;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = NO;

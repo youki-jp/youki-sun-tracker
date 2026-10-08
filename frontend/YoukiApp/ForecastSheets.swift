@@ -24,7 +24,7 @@ extension ContentView {
                     }
                     .font(.system(size: 12, design: .rounded))
                     if let error = serverViewModel.calendarError {
-                        Text(error + (serverViewModel.calendarDays.isEmpty ? "" : " Showing earlier forecasts."))
+                        Text(AppLocalization.text(error + (serverViewModel.calendarDays.isEmpty ? "" : " Showing earlier forecasts.")))
                             .font(.system(size: 12, design: .rounded))
                             .foregroundStyle(accentColor)
                     }
@@ -136,7 +136,7 @@ extension ContentView {
 
                 Spacer()
 
-                Picker("Theme", selection: $appTheme) {
+                Picker(japanese ? "テーマ" : "Theme", selection: $appTheme) {
                     ForEach(AppTheme.allCases) { theme in
                         Text(theme.label).tag(theme)
                     }
@@ -212,7 +212,7 @@ extension ContentView {
             .accessibilityIdentifier("smartAlarmToggle")
 
             if let error = alarmModel.errorMessage {
-                Text(error)
+                        Text(AppLocalization.text(error))
                     .font(.system(size: 12, design: .rounded))
                     .foregroundStyle(accentColor)
             }
@@ -256,9 +256,9 @@ extension ContentView {
     ) -> some View {
         HStack {
             VStack(alignment: .leading, spacing: 2) {
-                Text(title)
+                Text(AppLocalization.text(title))
                     .font(.system(size: 14, weight: .semibold, design: .rounded))
-                Text(subtitle)
+                Text(AppLocalization.text(subtitle))
                     .font(.system(size: 11.5, weight: .medium, design: .rounded))
                     .foregroundStyle(inkColor.opacity(0.55))
             }
@@ -278,9 +278,9 @@ extension ContentView {
     ) -> some View {
         HStack {
             VStack(alignment: .leading, spacing: 2) {
-                Text(title)
+                Text(AppLocalization.text(title))
                     .font(.system(size: 14, weight: .semibold, design: .rounded))
-                Text(subtitle)
+                Text(AppLocalization.text(subtitle))
                     .font(.system(size: 11.5, weight: .medium, design: .rounded))
                     .foregroundStyle(inkColor.opacity(0.55))
             }
@@ -357,7 +357,7 @@ extension ContentView {
                 .accessibilityIdentifier("manualLocationButton")
 
                 if let error = serverViewModel.errorMessage {
-                    Text(error)
+                    Text(AppLocalization.text(error))
                         .font(.system(size: 12, design: .rounded))
                         .foregroundStyle(inkColor.opacity(0.65))
                     Button("Retry forecast") {
@@ -391,10 +391,10 @@ extension ContentView {
 
     func coordinateField(_ title: String, placeholder: String, text: Binding<String>, id: String) -> some View {
         VStack(alignment: .leading, spacing: 7) {
-            Text(title)
+            Text(AppLocalization.text(title))
                 .font(.system(size: 12, weight: .semibold, design: .rounded))
                 .foregroundStyle(inkColor.opacity(0.65))
-            TextField(placeholder, text: text)
+            TextField(AppLocalization.text(placeholder), text: text)
                 .keyboardType(.numbersAndPunctuation)
                 .focused($coordinateFocus, equals: id)
                 .submitLabel(.done)

@@ -59,8 +59,8 @@ struct ContentView: View {
             }
         }
         .task {
-            await authSession.refreshAccount()
             isRestoringSession = false
+            await authSession.refreshAccount()
         }
         .onChange(of: authSession.account?.tier) { old, new in
             if old != nil && new != nil && old != new {
@@ -73,6 +73,7 @@ struct ContentView: View {
             isSkyExpanded = false
             if !signedIn { serverViewModel.showSample() }
         }
+        .environment(\.locale, Locale(identifier: appLanguage))
     }
 
     private var forecastBody: some View {
@@ -215,11 +216,12 @@ struct ContentView: View {
         }
         .onChange(of: scenePhase) { _, phase in
             serverViewModel.setForeground(phase == .active)
-            if phase == .active { Task { await authSession.refreshAccount() } }
-            if phase == .active { Task { await alarmModel.reconcile() } }
+            if phase == .active {
+                serverViewModel.selectNow()
+                Task { await authSession.refreshAccount() }
+            }
         }
         .task {
-            await alarmModel.reconcile()
             #if DEBUG
             if ProcessInfo.processInfo.arguments.contains(where: { $0.hasPrefix("-uiSkyFixture") }) {
                 await serverViewModel.load(ForecastCoordinates(latitude: 35, longitude: 139)!)
@@ -266,7 +268,7 @@ struct ContentView: View {
                     HStack(spacing: 6) {
                         Image(systemName: "location.circle")
                             .font(.system(size: 12, weight: .semibold))
-                        Text(serverViewModel.locationName)
+                        Text(AppLocalization.text(serverViewModel.locationName))
                             .font(.system(size: 12, weight: .semibold, design: .rounded))
                     }
                     .foregroundStyle(.white.opacity(0.88))

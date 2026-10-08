@@ -120,11 +120,11 @@ enum SkyDayTimelineAPIError: LocalizedError {
     var errorDescription: String? {
         switch self {
         case .invalidResponse:
-            return "The sky timeline server returned an invalid response."
+            return AppLocalization.text("The sky timeline server returned an invalid response.")
         case let .server(message):
-            return message
+            return AppLocalization.text(message)
         case .emptyTimeline:
-            return "The sky timeline server returned no solar samples."
+            return AppLocalization.text("The sky timeline server returned no solar samples.")
         }
     }
 }

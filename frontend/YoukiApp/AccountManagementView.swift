@@ -237,7 +237,7 @@ struct AccountManagementView: View {
     }
 
     private func sectionHeading(_ title: String) -> some View {
-        Text(title)
+                Text(AppLocalization.text(title))
             .font(.system(size: 10, weight: .bold, design: .rounded))
             .tracking(1.3)
             .foregroundStyle(inkColor.opacity(0.48))
