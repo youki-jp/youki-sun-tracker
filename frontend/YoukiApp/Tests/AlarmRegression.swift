@@ -9,8 +9,8 @@ import Foundation
     var failQuery = false
     var delay = false
     var calls = 0
-    var continuation: AsyncStream<Void>.Continuation?
-    func updates() -> AsyncStream<Void> { AsyncStream { continuation = $0 } }
+    var continuation: AsyncStream<Set<UUID>>.Continuation?
+    func updates() -> AsyncStream<Set<UUID>> { AsyncStream { continuation = $0 } }
     func authorize() async throws {
         if delay { try await Task.sleep(nanoseconds: 20_000_000) }
         if denied { throw GoldenHourAlarmError.message("Denied") }
@@ -154,7 +154,7 @@ import Foundation
         await observer.schedule(request)
         precondition(observer.scheduled == request)
         observerScheduler.ids.removeAll()
-        observerScheduler.continuation?.yield(())
+        observerScheduler.continuation?.yield(observerScheduler.ids)
         try await Task.sleep(nanoseconds: 20_000_000)
         precondition(observer.scheduled == nil && observerStore.value == nil)
         print("Alarm regressions passed (timezone/DST, denial, failures, persistence, duplicate commands, reconciliation).")

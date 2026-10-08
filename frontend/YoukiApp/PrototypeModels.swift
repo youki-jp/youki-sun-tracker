@@ -5,7 +5,7 @@ enum AppTheme: String, CaseIterable, Identifiable {
     case dark
 
     var id: String { rawValue }
-    var label: String { rawValue.capitalized }
+    var label: String { AppLocalization.text(rawValue.capitalized) }
 
     var colorScheme: ColorScheme {
         self == .dark ? .dark : .light

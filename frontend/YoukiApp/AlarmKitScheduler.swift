@@ -60,14 +60,15 @@ private struct GoldenHourAlarmMetadata: AlarmMetadata {
         throw GoldenHourAlarmError.message(unavailableReason ?? "System alarms are unavailable.")
     }
 
-    func updates() -> AsyncStream<Void> {
+    func updates() -> AsyncStream<Set<UUID>> {
         #if os(iOS) && canImport(AlarmKit)
         if #available(iOS 26.0, *) {
             return AsyncStream { continuation in
                 let task = Task { @MainActor in
-                    for await _ in AlarmManager.shared.alarmUpdates {
+                    await Task.yield()
+                    for await alarms in AlarmManager.shared.alarmUpdates {
                         guard !Task.isCancelled else { break }
-                        continuation.yield(())
+                        continuation.yield(Set(alarms.map(\.id)))
                     }
                     continuation.finish()
                 }

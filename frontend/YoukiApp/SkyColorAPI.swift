@@ -80,11 +80,11 @@ enum SkyColorAPIError: LocalizedError {
     var errorDescription: String? {
         switch self {
         case .invalidResponse:
-            return "The forecast server returned an invalid response."
+            return AppLocalization.text("The forecast server returned an invalid response.")
         case let .server(message):
-            return message
+            return AppLocalization.text(message)
         case .emptyPredictions:
-            return "The forecast server returned no predictions."
+            return AppLocalization.text("The forecast server returned no predictions.")
         }
     }
 }

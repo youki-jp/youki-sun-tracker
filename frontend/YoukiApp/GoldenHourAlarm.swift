@@ -4,7 +4,7 @@ import Combine
 enum GoldenHourAlarmEvent: String, Codable, CaseIterable, Identifiable {
     case sunrise, sunset
     var id: String { rawValue }
-    var label: String { self == .sunrise ? "Sunrise" : "Sunset" }
+    var label: String { AppLocalization.text(self == .sunrise ? "Sunrise" : "Sunset") }
 }
 
 struct GoldenHourAlarmRequest: Codable, Equatable, Identifiable {
@@ -41,7 +41,10 @@ struct GoldenHourAlarmRequest: Codable, Equatable, Identifiable {
 
 enum GoldenHourAlarmError: LocalizedError {
     case message(String)
-    var errorDescription: String? { if case let .message(text) = self { return text }; return nil }
+    var errorDescription: String? {
+        if case let .message(text) = self { return AppLocalization.text(text) }
+        return nil
+    }
 }
 
 enum GoldenHourAlarmDate {
@@ -87,11 +90,11 @@ enum GoldenHourAlarmDate {
     func schedule(_ request: GoldenHourAlarmRequest) async throws
     func cancel(id: UUID) throws
     func scheduledIDs() throws -> Set<UUID>
-    func updates() -> AsyncStream<Void>
+    func updates() -> AsyncStream<Set<UUID>>
 }
 
 extension AlarmScheduling {
-    func updates() -> AsyncStream<Void> { AsyncStream { $0.finish() } }
+    func updates() -> AsyncStream<Set<UUID>> { AsyncStream { $0.finish() } }
 }
 
 struct GoldenHourAlarmRecord: Codable {
@@ -125,7 +128,10 @@ struct GoldenHourAlarmRecord: Codable {
     @Published private(set) var isBusy = false
     @Published private(set) var errorMessage: String?
     var unavailableReason: String? { scheduler.unavailableReason }
-    var unconfirmed: GoldenHourAlarmRequest? { scheduled == nil ? record?.request : nil }
+    var unconfirmed: GoldenHourAlarmRequest? {
+        guard record?.confirmed == false else { return nil }
+        return record?.request
+    }
     private let scheduler: any AlarmScheduling
     private let store: any GoldenHourAlarmStoring
     private let now: () -> Date
@@ -139,16 +145,11 @@ struct GoldenHourAlarmRecord: Codable {
         self.scheduler = scheduler ?? SystemAlarmScheduler()
         self.store = store ?? UserDefaultsGoldenHourAlarmStore()
         self.now = now
-        do { record = try self.store.load() }
-        catch { storageReadFailed = true; errorMessage = error.localizedDescription }
-        // Persisted state is not a system confirmation; reconcile before displaying On.
-        let updates = self.scheduler.updates()
-        observationTask = Task { [weak self] in
-            for await _ in updates {
-                guard !Task.isCancelled else { return }
-                await self?.reconcile()
-            }
+        do {
+            record = try self.store.load()
+            if record?.confirmed == true { scheduled = record?.request }
         }
+        catch { storageReadFailed = true; errorMessage = error.localizedDescription }
     }
 
     deinit { observationTask?.cancel() }
@@ -181,6 +182,7 @@ struct GoldenHourAlarmRecord: Codable {
                 // The pending UUID remains durable even if the confirmation write fails.
                 throw GoldenHourAlarmError.message("Alarm was scheduled, but its saved confirmation failed. Check or cancel it here.")
             }
+            startObserving()
         } catch { errorMessage = error.localizedDescription }
     }
 
@@ -195,6 +197,7 @@ struct GoldenHourAlarmRecord: Codable {
             scheduled = nil
             try store.save(nil)
             record = nil
+            stopObserving()
         } catch { errorMessage = error.localizedDescription }
     }
 
@@ -202,8 +205,51 @@ struct GoldenHourAlarmRecord: Codable {
         guard !isBusy else { needsReconciliation = true; return }
         isBusy = true
         defer { finishCommand() }
-        do { try reconcileState(); errorMessage = nil }
+        do {
+            if let record, record.confirmed {
+                scheduled = record.request
+                startObserving()
+                return
+            }
+            try reconcileState()
+            errorMessage = nil
+            if record != nil { startObserving() }
+        }
         catch { errorMessage = error.localizedDescription }
+    }
+
+    func prepareForDisplay() async {
+        if let record, record.confirmed {
+            scheduled = record.request
+            startObserving()
+            return
+        }
+        await reconcile()
+    }
+
+    private func startObserving() {
+        guard observationTask == nil else { return }
+        let updates = scheduler.updates()
+        observationTask = Task { [weak self] in
+            for await ids in updates {
+                guard !Task.isCancelled else { return }
+                self?.applySystemUpdate(ids)
+            }
+        }
+    }
+
+    private func applySystemUpdate(_ ids: Set<UUID>) {
+        do {
+            try reconcileState(scheduledIDs: ids)
+            errorMessage = nil
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+    }
+
+    private func stopObserving() {
+        observationTask?.cancel()
+        observationTask = nil
     }
 
     private func finishCommand() {
@@ -215,13 +261,13 @@ struct GoldenHourAlarmRecord: Codable {
         }
     }
 
-    private func reconcileState() throws {
+    private func reconcileState(scheduledIDs: Set<UUID>? = nil) throws {
         if storageReadFailed {
             record = try store.load()
             storageReadFailed = false
         }
         guard let record else { return }
-        let ids = try scheduler.scheduledIDs()
+        let ids = try scheduledIDs ?? scheduler.scheduledIDs()
         if ids.contains(record.request.id) {
             scheduled = record.request
             if !record.confirmed {
@@ -233,6 +279,7 @@ struct GoldenHourAlarmRecord: Codable {
             scheduled = nil
             try store.save(nil)
             self.record = nil
+            stopObserving()
         }
     }
 }

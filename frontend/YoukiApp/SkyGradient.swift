@@ -5,13 +5,13 @@ enum SkyMoment: String, CaseIterable, Identifiable {
     var id: String { rawValue }
     var label: String {
         switch self {
-        case .now: return "Now"
-        case .firstLight: return "First light"
-        case .goldenHour: return "Golden hour"
-        case .sunrise: return "Sunrise"
-        case .daylight: return "Daylight"
-        case .goldenHourPM: return "Golden PM"
-        case .sunset: return "Sunset"
+        case .now: return AppLocalization.text("Now")
+        case .firstLight: return AppLocalization.text("First light")
+        case .goldenHour: return AppLocalization.text("Golden hour")
+        case .sunrise: return AppLocalization.text("Sunrise")
+        case .daylight: return AppLocalization.text("Daylight")
+        case .goldenHourPM: return AppLocalization.text("Golden PM")
+        case .sunset: return AppLocalization.text("Sunset")
         }
     }
     var isEvening: Bool { self == .goldenHourPM || self == .sunset }

@@ -29,9 +29,15 @@ enum ForecastMapper {
             weekday: weekday(for: primaryDate, timezone: timezone),
             dateLabel: dateLabel(for: primaryDate, timezone: timezone),
             qualityScore: primary.score,
-            summaryLabel: moment == .now ? "\(primaryKindLabel.capitalized) forecast score" : "\(primary.estimatedColorName.capitalized) \(primaryKindLabel) glow",
-            heroTime: moment == .now ? "Now" : (timeline.map { milestoneTime(moment.localIso(in: $0.milestones)) } ?? displayTime(primary.window.eventTimeIso, timezone: timezone)),
-            heroSubtitle: moment == .now ? "Current local time · \(displayClock(currentDate, timezone: timezone))" : (timeline.map { "\(moment.label) · \($0.location.timezoneId)" } ?? "\(primaryKindLabel.capitalized) forecast"),
+            summaryLabel: moment == .now
+                ? AppLocalization.text(primary.kind == .sunrise ? "Sunrise forecast score" : "Sunset forecast score")
+                : (AppLocalization.isJapanese
+                    ? "\(japaneseColor(primary.estimatedColorName))\(primary.kind == .sunrise ? "の日の出" : "の日の入り")の空"
+                    : "\(primary.estimatedColorName.capitalized) \(primaryKindLabel) glow"),
+            heroTime: moment == .now ? AppLocalization.text("Now") : (timeline.map { milestoneTime(moment.localIso(in: $0.milestones)) } ?? displayTime(primary.window.eventTimeIso, timezone: timezone)),
+            heroSubtitle: moment == .now
+                ? "\(AppLocalization.text("Current local time")) · \(displayClock(currentDate, timezone: timezone))"
+                : (timeline.map { "\(moment.label) · \($0.location.timezoneId)" } ?? AppLocalization.text(primary.kind == .sunrise ? "Sunrise forecast" : "Sunset forecast")),
             nowTime: displayClock(currentDate, timezone: timezone),
             location: locationName,
             mood: mood,
@@ -42,9 +48,9 @@ enum ForecastMapper {
             goldenPM: milestoneTime(timeline?.milestones.goldenHourPmStartIso),
             sunset: milestoneTime(timeline?.milestones.sunsetIso ?? sunset?.window.eventTimeIso),
             blueEnd: milestoneTime(timeline?.milestones.civilDuskIso),
-            cloud: percentage(liveConditions?.cloudCoverPct, suffix: "% cover"),
+            cloud: percentage(liveConditions?.cloudCoverPct, suffix: AppLocalization.isJapanese ? "％ 雲量" : "% cover"),
             uv: decimal(liveConditions?.uvIndex),
-            confidenceLabel: "\(primary.confidence)% input coverage",
+            confidenceLabel: AppLocalization.isJapanese ? "入力データ \(primary.confidence)%" : "\(primary.confidence)% input coverage",
             analysisText: moment == .now ? "\(primaryKindLabel.capitalized) event forecast: \(analysisText(for: primary))" : analysisText(for: primary),
             colorRamp: generatedRamp ?? colorRamp(for: primary, mood: mood),
             isLocked: false
@@ -60,10 +66,12 @@ enum ForecastMapper {
                             moment: SkyMoment, appearance: SkyAppearance, currentDate: Date = Date()) -> PrototypeDay {
         let milestones = timeline.milestones
         return PrototypeDay(
-            id: timeline.targetDateIso, weekday: "Forecast", dateLabel: timeline.targetDateIso,
-            qualityScore: 0, summaryLabel: moment == .now ? "Event score unavailable" : "Score unavailable",
-            heroTime: moment == .now ? "Now" : milestoneTime(moment.localIso(in: milestones)),
-            heroSubtitle: moment == .now ? "Current local time · \(displayClock(currentDate, timezone: timeline.location.timezoneId))" : "\(moment.label) · \(timeline.location.timezoneId)",
+            id: timeline.targetDateIso, weekday: AppLocalization.text("Forecast"), dateLabel: timeline.targetDateIso,
+            qualityScore: 0, summaryLabel: AppLocalization.text(moment == .now ? "Event score unavailable" : "Score unavailable"),
+            heroTime: moment == .now ? AppLocalization.text("Now") : milestoneTime(moment.localIso(in: milestones)),
+            heroSubtitle: moment == .now
+                ? "\(AppLocalization.text("Current local time")) · \(displayClock(currentDate, timezone: timeline.location.timezoneId))"
+                : "\(moment.label) · \(timeline.location.timezoneId)",
             nowTime: displayClock(currentDate, timezone: timeline.location.timezoneId),
             location: locationName, mood: .clear,
             firstLight: milestoneTime(milestones.civilDawnIso),
@@ -73,8 +81,8 @@ enum ForecastMapper {
             goldenPM: milestoneTime(milestones.goldenHourPmStartIso),
             sunset: milestoneTime(milestones.sunsetIso),
             blueEnd: milestoneTime(milestones.civilDuskIso),
-            cloud: "—", uv: "—", confidenceLabel: "Score unavailable",
-            analysisText: "The sky uses the live solar and atmospheric timeline. Forecast score and analysis are unavailable for this event.",
+            cloud: "—", uv: "—", confidenceLabel: AppLocalization.text("Score unavailable"),
+            analysisText: AppLocalization.text("The sky uses the live solar and atmospheric timeline. Forecast score and analysis are unavailable for this event."),
             colorRamp: appearance.ramp.map { Color(hex: $0) }, isLocked: false
         )
     }
@@ -82,9 +90,24 @@ enum ForecastMapper {
     private static func analysisText(
         for prediction: SkyColorAPIResponse.SkyColorPrediction
     ) -> String {
+        if AppLocalization.isJapanese {
+            let palette = prediction.dominantColors.joined(separator: "、")
+            return "気象・大気データに基づく予報です。予想される空の色：\(palette)。"
+        }
         let reasons = prediction.reasons.joined(separator: " ")
         let palette = prediction.dominantColors.joined(separator: ", ")
         return "\(reasons) Predicted colors: \(palette)."
+    }
+
+    private static func japaneseColor(_ value: String) -> String {
+        switch value.lowercased() {
+        case "dramatic", "vivid": return "鮮やかな"
+        case "warm": return "暖かな"
+        case "pastel": return "パステルカラーの"
+        case "muted": return "落ち着いた色合いの"
+        case "overcast": return "曇り空の"
+        default: return value
+        }
     }
 
     private static func colorRamp(
@@ -148,23 +171,27 @@ enum ForecastMapper {
 
     private static func weekday(for date: Date?, timezone: String) -> String {
         guard let date else {
-            return "Today"
+            return AppLocalization.text("Today")
         }
 
         let calendar = calendar(timezone: timezone)
         if calendar.isDateInToday(date) {
-            return "Today"
+            return AppLocalization.text("Today")
         }
 
-        return formatter(timezone: timezone, format: "EEE").string(from: date)
+        let weekday = formatter(timezone: timezone, format: "EEE")
+        weekday.locale = AppLocalization.locale
+        return weekday.string(from: date)
     }
 
     private static func dateLabel(for date: Date?, timezone: String) -> String {
         guard let date else {
-            return "Live forecast"
+            return AppLocalization.text("Live forecast")
         }
 
-        return formatter(timezone: timezone, format: "EEE, MMM d").string(from: date)
+        let label = formatter(timezone: timezone, format: "EEE, MMM d")
+        label.locale = AppLocalization.locale
+        return label.string(from: date)
     }
 
     private static func percentage(_ value: Double?, suffix: String) -> String {

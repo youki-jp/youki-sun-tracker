@@ -10,11 +10,11 @@ enum LocationProviderError: LocalizedError {
     var errorDescription: String? {
         switch self {
         case .permissionDenied:
-            return "Location access is disabled. Allow location access in Settings to load a live forecast."
+            return AppLocalization.text("Location access is disabled. Allow location access in Settings to load a live forecast.")
         case .unavailable:
-            return "Your current location could not be determined."
+            return AppLocalization.text("Your current location could not be determined.")
         case .requestInProgress:
-            return "A location request is already in progress."
+            return AppLocalization.text("A location request is already in progress.")
         }
     }
 }
